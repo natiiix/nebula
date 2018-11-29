@@ -1,4 +1,8 @@
+    cli
+
 hang:
 	jmp hang
 
-	times 512-($-$$) db 0
+	times 510-($-$$) db 0
+    db 0x55
+    db 0xAA
