@@ -1,24 +1,29 @@
 [ORG 0x7C00]
 
+    cld             ; lowest-to-highest address string direction
+
     xor ax, ax      ; ax = 0
     mov ds, ax      ; ds = ax
 
     mov si, msg     ; si = msg
-    cld             ; lowest-to-highest address string direction
+    call bios_print
 
-ch_loop:
+hang:
+    jmp hang        ; infinite hang loop
+
+bios_print:
     lodsb           ; al = *si++
     or al, al
-    jz hang         ; al == '\0'
+    jz return       ; al == '\0'
 
     mov ah, 0x0E
     mov bh, 0x00
     int 0x10        ; BIOS print character interrupt
 
-    jmp ch_loop     ; string printing loop
+    jmp bios_print  ; string printing loop
 
-hang:
-    jmp hang        ; infinite hang loop
+return:             ; label used for conditional return
+    ret
 
 msg     db 'Hello World!', 13, 10, 0
 
