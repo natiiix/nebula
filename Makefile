@@ -1,5 +1,5 @@
 boot.bin: *.asm
-	nasm boot.asm -f bin -o boot.bin
+	nasm -w+all boot.asm -f bin -o boot.bin
 
 clean:
 	rm boot.bin
