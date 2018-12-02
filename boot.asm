@@ -1,3 +1,8 @@
+%macro print 1
+    mov si, %1
+    call bios_print
+%endmacro
+
 [ORG 0x7C00]
 
     cld             ; lowest-to-highest address string direction
@@ -5,8 +10,7 @@
     xor ax, ax      ; ax = 0
     mov ds, ax      ; ds = ax
 
-    mov si, msg     ; si = msg
-    call bios_print
+    print msg
 
 hang:
     jmp hang        ; infinite hang loop
