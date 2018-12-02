@@ -8,7 +8,7 @@
     cli                 ; clear interrupt flag
     cld                 ; lowest-to-highest byte string direction
 
-    xor ax, ax          ; AX = 0
+    mov ax, 0           ; AX = 0
     mov ds, ax          ; DS = 0
     mov ss, ax          ; stack top = 0
     mov sp, 0x9C00      ; stack bottom = 0x2000 behind the beginning of the code
