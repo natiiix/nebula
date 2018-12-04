@@ -23,8 +23,8 @@
 
     PRINTLN msg         ; print string
 
-    mov ax, 0xABCD      ; move test value to AX
-    call print16        ; print value in AX
+    mov eax, 0x1234ABCD ; move test value to EAX
+    call print32        ; print value in EAX
 
 hang:
     jmp hang            ; infinite hang loop
@@ -57,14 +57,30 @@ print_char:
 
     ret
 
+print8:
+    mov cx, 2
+    jmp printhex
+
 print16:
-    mov di, hex16       ; get output hex string base address
+    mov cx, 4
+    jmp printhex
+
+print32:
+    mov cx, 8
+    jmp printhex
+
+printhex:
     mov si, hextab      ; get hex table base address
-    mov cx, 4           ; 16 bits = 4 x 4-bit block (4 hex digits)
+
+    mov di, hexstr      ; get output hex string base address
+    add di, 8           ; move pointer to the end of output hex string
+    sub di, cx          ; move pointer back by the number of value bytes
+    mov [hexaddr], di   ; store the pointer for printing later
+
 hexloop:
-    rol ax, 4           ; rotate left by 4 bits
-    mov bx, ax          ; copy value to BX
-    and bx, 0x0F        ; extract last 4 bits
+    rol eax, 4          ; rotate left by 4 bits
+    mov ebx, eax        ; copy value to EBX
+    and ebx, 0x0F       ; extract last 4 bits
     mov bl, [si + bx]   ; copy character from hex table
     mov [di], bl        ; copy character to output hex string
     inc di              ; increment output hex string index
@@ -72,7 +88,7 @@ hexloop:
     jnz hexloop         ; if there are more 4-bit blocks to process, keep going
 
     PRINT hexpre        ; print hex value prefix (0x)
-    PRINTLN hex16       ; print output hex string
+    PRINTLN [hexaddr]   ; print output hex string
 
     ret
 
@@ -87,7 +103,8 @@ ypos    db 0
 
 hextab  db "0123456789ABCDEF"
 hexpre  db "0x", 0
-hex16   db "0000", 0
+hexstr  db "00000000", 0
+hexaddr dw 0
 
 msg     db "Hello World!", 0
 
