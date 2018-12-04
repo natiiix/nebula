@@ -13,10 +13,10 @@
     cli                 ; clear interrupt flag
     cld                 ; lowest-to-highest byte string direction
 
-    mov ax, 0           ; AX = 0
-    mov ds, ax          ; DS = 0
-    mov ss, ax          ; stack top = 0
-    mov sp, 0x9C00      ; stack bottom = 0x2000 behind the beginning of the code
+    mov ax, 0           ; prepare 0 in AX register
+    mov ds, ax          ; set data segment to 0
+    mov ss, ax          ; set stack segment to 0
+    mov sp, 0x9C00      ; set top of stack to address 0x2000 behind the beginning of the code
 
     mov ax, 0xB800      ; VGA text buffer address
     mov es, ax
