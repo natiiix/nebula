@@ -3,6 +3,11 @@
     call print_str
 %endmacro
 
+%macro PRINTLN 1
+    PRINT %1
+    call newline
+%endmacro
+
 [ORG 0x7C00]            ; boot sector memory address
 
     cli                 ; clear interrupt flag
@@ -16,7 +21,10 @@
     mov ax, 0xB800      ; VGA text buffer address
     mov es, ax
 
-    PRINT msg           ; print string
+    PRINTLN msg         ; print string
+
+    mov ax, 0xABCD      ; move test value to AX
+    call print16        ; print value in AX
 
 hang:
     jmp hang            ; infinite hang loop
@@ -27,9 +35,6 @@ print_str:
     lodsb               ; load next string character / byte
     cmp al, 0           ; check for null string termination character
     jne print_str_char  ; string printing loop
-
-    mov byte [xpos], 0  ; carriage return
-    add byte [ypos], 1  ; line feed
 
     ret
 
@@ -52,8 +57,37 @@ print_char:
 
     ret
 
+print16:
+    mov di, hex16       ; get output hex string base address
+    mov si, hextab      ; get hex table base address
+    mov cx, 4           ; 16 bits = 4 x 4-bit block (4 hex digits)
+hexloop:
+    rol ax, 4           ; rotate left by 4 bits
+    mov bx, ax          ; copy value to BX
+    and bx, 0x0F        ; extract last 4 bits
+    mov bl, [si + bx]   ; copy character from hex table
+    mov [di], bl        ; copy character to output hex string
+    inc di              ; increment output hex string index
+    dec cx              ; decrement input value 4-bit block counter
+    jnz hexloop         ; if there are more 4-bit blocks to process, keep going
+
+    PRINT hexpre        ; print hex value prefix (0x)
+    PRINTLN hex16       ; print output hex string
+
+    ret
+
+newline:
+    mov byte [xpos], 0  ; carriage return
+    add byte [ypos], 1  ; line feed
+
+    ret
+
 xpos    db 0
 ypos    db 0
+
+hextab  db "0123456789ABCDEF"
+hexpre  db "0x", 0
+hex16   db "0000", 0
 
 msg     db "Hello World!", 0
 
