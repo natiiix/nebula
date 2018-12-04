@@ -24,7 +24,7 @@
     PRINTLN msg         ; print string
 
     mov eax, 0x1234ABCD ; move test value to EAX
-    call print32        ; print value in EAX
+    call print16        ; print value in EAX
 
 hang:
     jmp hang            ; infinite hang loop
@@ -57,33 +57,33 @@ print_char:
 
     ret
 
-print8:
+print8:                 ; print 8-bit value in AL
     mov cx, 2
     jmp printhex
 
-print16:
+print16:                ; print 16-bit value in AX
     mov cx, 4
     jmp printhex
 
-print32:
+print32:                ; print 32-bit value in EAX
     mov cx, 8
     jmp printhex
 
 printhex:
-    mov si, hextab      ; get hex table base address
+    mov si, hextab      ; copy hex table base address into source register
 
-    mov di, hexstr      ; get output hex string base address
-    add di, 8           ; move pointer to the end of output hex string
-    sub di, cx          ; move pointer back by the number of value bytes
-    mov [hexaddr], di   ; store the pointer for printing later
+    mov bx, hexstr + 8  ; get end address of output hex string
+    mov di, bx          ; copy end address to destination register
+    sub bx, cx          ; subtract number of digits from end address to get beginning address
+    mov [hexaddr], bx   ; store beginning address in memory for later printing
 
 hexloop:
-    rol eax, 4          ; rotate left by 4 bits
+    dec di              ; decrement output hex string index (move one character to left)
     mov ebx, eax        ; copy value to EBX
-    and ebx, 0x0F       ; extract last 4 bits
+    and ebx, 0xF        ; extract last 4 bits
     mov bl, [si + bx]   ; copy character from hex table
     mov [di], bl        ; copy character to output hex string
-    inc di              ; increment output hex string index
+    shr eax, 4          ; shift right by 4 bits
     dec cx              ; decrement input value 4-bit block counter
     jnz hexloop         ; if there are more 4-bit blocks to process, keep going
 
