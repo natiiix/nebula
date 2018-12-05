@@ -10,16 +10,23 @@
 
 [ORG 0x7C00]            ; boot sector memory address
 
-    cli                 ; clear interrupt flag
+    cli                 ; disable interrupts (during initialization)
     cld                 ; lowest-to-highest byte string direction
 
     mov ax, 0           ; prepare 0 in AX register
     mov ds, ax          ; set data segment to 0
     mov ss, ax          ; set stack segment to 0
+    mov gs, ax          ; set G segment (used by interrupts) to 0
     mov sp, 0x9C00      ; set top of stack to address 0x2000 behind the beginning of the code
 
     mov ax, 0xB800      ; VGA text buffer address
     mov es, ax
+
+    mov bx, 0x09        ; keyboard hardware interrupt ID
+    shl bx, 2           ; shift left by 2 bits
+    mov [gs:bx], word keyhandler    ; set keyboard interrupt procedure address
+    mov [gs:bx+2], ds   ; set keyboard interrupt procedure segment (presumably)
+    sti                 ; enable interrupts
 
     PRINTLN msg         ; print string
 
@@ -27,6 +34,7 @@
     call print16        ; print value in EAX
 
 hang:
+    hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
 
 print_str_char:
@@ -36,7 +44,7 @@ print_str:
     cmp al, 0           ; check for null string termination character
     jne print_str_char  ; string printing loop
 
-    call update_cursor
+    call update_cursor  ; update VGA cursor position
 
     ret
 
@@ -127,6 +135,30 @@ newline:
 
     ret
 
+keyhandler:
+    in al, 0x60         ; read key data
+    mov bl, al          ; save it for later use
+    mov byte [port60], al   ; save it for printing
+
+    in al, 0x61         ; read more key data
+    mov ah, al          ; make copy of AL in AH
+    or al, 0x80         ; disable bit 7 (set it to 1)
+    out 0x61, al        ; send it back (with bit 7 disabled)
+    mov al, ah          ; move unmodified value back to AL
+    out 0x61, al        ; send unmodified value back (with bit 7 in original state)
+
+    mov al, 0x20        ; end-of-interrupt code
+    out 0x20, al        ; send end-of-interrupt signal
+
+    and bl, 0x80        ; check if key was pressed or released
+    jnz keyhandler_done ; do not print released keys
+
+    mov ax, word [port60]
+    call print16        ; print key code
+
+keyhandler_done:
+    iret
+
 ; ============================================
 ; ================    DATA    ================
 ; ============================================
@@ -138,6 +170,8 @@ hextab  db "0123456789ABCDEF"
 hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dw 0
+
+port60  dw 0
 
 msg     db "Hello World!", 0
 
