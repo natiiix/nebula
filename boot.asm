@@ -36,6 +36,8 @@ print_str:
     cmp al, 0           ; check for null string termination character
     jne print_str_char  ; string printing loop
 
+    call update_cursor
+
     ret
 
 print_char:
@@ -54,6 +56,33 @@ print_char:
     mov ax, cx          ; restore char/attribute
     stosw               ; write char/attribute
     add byte [xpos], 1  ; advance to right
+
+    ret
+
+update_cursor:
+    movzx ax, byte [ypos]   ; get cursor Y position
+    mov bx, 80              ; screen width (presumably 80)
+    mul bx                  ; multiply it by screen width
+    movzx bx, byte [xpos]   ; get cursor X position
+    add bx, ax              ; absolute cursor position (Y * width + X) is now in BX
+
+    mov dx, 0x3D4
+    mov al, 0x0F
+	out dx, al          ; tell VGA to expect cursor low byte
+
+    mov dx, 0x3D5
+    mov al, bl
+	out dx, al          ; send low byte
+
+    shr bx, 8           ; shift BX by 1 byte to right (get high byte)
+
+    mov dx, 0x3D4
+    mov al, 0x0E
+	out dx, al          ; tell VGA to expect cursor high byte
+
+    mov dx, 0x3D5
+    mov al, bl
+	out dx, al          ; send high byte
 
     ret
 
