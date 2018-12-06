@@ -163,8 +163,8 @@ keyhandler:
     and bl, 0x80        ; check if key was pressed or released
     jnz keyhandler_done ; do not print released keys
 
-    mov ax, word [port60]
-    call print16        ; print key code
+    mov al, byte [port60]
+    call print8        ; print key code
 
 keyhandler_done:
     iret
@@ -181,7 +181,7 @@ hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dw 0
 
-port60  dw 0
+port60  db 0
 
 msg     db "Hello World!", 0
 
