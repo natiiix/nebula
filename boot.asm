@@ -6,14 +6,14 @@
 %macro PRINT 1
     mov si, %1
     call print_str
-    call update_cursor
+    call finish_print
 %endmacro
 
 %macro PRINTLN 1
     mov si, %1
     call print_str
     call newline
-    call update_cursor
+    call finish_print
 %endmacro
 
 [ORG 0x7C00]            ; boot sector memory address
@@ -56,18 +56,11 @@ print_str:
 
 print_char:
     mov ah, 0x0F        ; attribute byte - white on black
-    mov cx, ax          ; store character and attribute in CX
-    movzx ax, byte [ypos]
-    mov dx, COLUMNS * 2 ; 160 bytes per line (80 columns, 2 bytes per column / character)
-    mul dx              ; multiply Y position by number of bytes per line
-    movzx bx, byte [xpos]
-    shl bx, 1           ; take X position and multiply it by 2 to skip attributes
+    mov dx, ax          ; store character and attribute in CX
 
-    mov di, 0           ; start of video memory
-    add di, ax          ; add y offset
-    add di, bx          ; add x offset
+    call get_cur_pos
 
-    mov ax, cx          ; restore char/attribute
+    mov ax, dx          ; restore char/attribute
     stosw               ; write char/attribute
     add byte [xpos], 1  ; advance to right
 
@@ -76,6 +69,39 @@ print_char:
     call newline        ; move on to next line
 
 print_char_done:
+    ret
+
+finish_print:
+    call clear_line
+    call update_cursor
+
+    ret
+
+clear_line:
+    call get_cur_pos
+
+    mov cx, COLUMNS
+    movzx ax, byte [xpos]
+    sub cx, ax          ; calculate trailing empty columns on current line
+
+    mov ah, 0x00        ; black foreground on black background
+    mov al, 0x20        ; space character
+
+clear_line_inner:
+    stosw
+    loop clear_line_inner
+    ret
+
+get_cur_pos:            ; get absolute cursor position (buffer index) and put it into DI
+    movzx ax, byte [ypos]
+    mov dx, COLUMNS * 2 ; 160 bytes per line (80 columns, 2 bytes per column / character)
+    mul dx              ; multiply Y position by number of bytes per line
+    movzx bx, byte [xpos]
+    shl bx, 1           ; take X position and multiply it by 2 to skip attributes
+
+    mov di, ax          ; set index to Y offset
+    add di, bx          ; add X offset
+
     ret
 
 update_cursor:          ; update VGA cursor position
@@ -170,7 +196,16 @@ keyhandler:
     jnz keyhandler_done ; do not print released keys
 
     mov al, byte [port60]
-    call print8         ; print key code
+    call print8         ; print key scan code
+
+    mov si, keytab      ; get scan-code-to-ASCII table base address
+    movzx ax, byte [port60] ; copy last received scan code
+    add si, ax          ; add scan code to base table address as index / offset
+    mov al, [si]        ; read ASCII value from table at index specified by scan code
+
+    call print_char     ; print converted ASCII character
+    call newline        ; terminate line
+    call finish_print   ; perform after-print procedures
 
 keyhandler_done:
     iret
@@ -182,12 +217,17 @@ keyhandler_done:
 xpos    db 0
 ypos    db 0
 
+; conversion table from 4-bit value to hexadecimal digit
 hextab  db "0123456789ABCDEF"
 hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dw 0
 
 port60  db 0
+
+; conversion table from keyboard key scan code to ASCII
+keytab  db 0x3F, 0x3F, "1234567890"
+    times 64 db 0x3F
 
 msg     db "Hello World!", 0
 
