@@ -65,6 +65,11 @@ print_char:
     stosw               ; write char/attribute
     add byte [xpos], 1  ; advance to right
 
+    cmp byte [xpos], 80 ; if current line is full
+    jne print_char_done
+    call newline        ; move on to next line
+
+print_char_done:
     ret
 
 update_cursor:
@@ -133,6 +138,11 @@ newline:
     mov byte [xpos], 0  ; carriage return
     add byte [ypos], 1  ; line feed
 
+    cmp byte [ypos], 25 ; if cursor is below last line
+    jnz newline_done
+    mov byte [ypos], 0  ; overflow back to the first line
+
+newline_done:
     ret
 
 keyhandler:
