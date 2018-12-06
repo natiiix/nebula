@@ -1,11 +1,19 @@
+; screen width (80 columns / characters)
+%define COLUMNS 80
+; screen height (25 rows / lines)
+%define ROWS 25
+
 %macro PRINT 1
     mov si, %1
     call print_str
+    call update_cursor
 %endmacro
 
 %macro PRINTLN 1
-    PRINT %1
+    mov si, %1
+    call print_str
     call newline
+    call update_cursor
 %endmacro
 
 [ORG 0x7C00]            ; boot sector memory address
@@ -44,15 +52,13 @@ print_str:
     cmp al, 0           ; check for null string termination character
     jne print_str_char  ; string printing loop
 
-    call update_cursor  ; update VGA cursor position
-
     ret
 
 print_char:
     mov ah, 0x0F        ; attribute byte - white on black
     mov cx, ax          ; store character and attribute in CX
     movzx ax, byte [ypos]
-    mov dx, 160         ; 160 bytes per line (80 columns, 2 bytes per column / character)
+    mov dx, COLUMNS * 2 ; 160 bytes per line (80 columns, 2 bytes per column / character)
     mul dx              ; multiply Y position by number of bytes per line
     movzx bx, byte [xpos]
     shl bx, 1           ; take X position and multiply it by 2 to skip attributes
@@ -65,19 +71,19 @@ print_char:
     stosw               ; write char/attribute
     add byte [xpos], 1  ; advance to right
 
-    cmp byte [xpos], 80 ; if current line is full
+    cmp byte [xpos], COLUMNS    ; if current line is full
     jne print_char_done
     call newline        ; move on to next line
 
 print_char_done:
     ret
 
-update_cursor:
+update_cursor:          ; update VGA cursor position
     movzx ax, byte [ypos]   ; get cursor Y position
-    mov bx, 80              ; screen width (presumably 80)
-    mul bx                  ; multiply it by screen width
+    mov bx, COLUMNS     ; screen width (presumably 80)
+    mul bx              ; multiply it by screen width
     movzx bx, byte [xpos]   ; get cursor X position
-    add bx, ax              ; absolute cursor position (Y * width + X) is now in BX
+    add bx, ax          ; absolute cursor position (Y * width + X) is now in BX
 
     mov dx, 0x3D4
     mov al, 0x0F
@@ -138,7 +144,7 @@ newline:
     mov byte [xpos], 0  ; carriage return
     add byte [ypos], 1  ; line feed
 
-    cmp byte [ypos], 25 ; if cursor is below last line
+    cmp byte [ypos], ROWS   ; if cursor is below last line
     jnz newline_done
     mov byte [ypos], 0  ; overflow back to the first line
 
@@ -164,7 +170,7 @@ keyhandler:
     jnz keyhandler_done ; do not print released keys
 
     mov al, byte [port60]
-    call print8        ; print key code
+    call print8         ; print key code
 
 keyhandler_done:
     iret
