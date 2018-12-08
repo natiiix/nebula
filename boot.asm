@@ -4,87 +4,140 @@
 %define ROWS 25
 
 %macro PRINT 1
-    mov si, %1
+    mov esi, %1
     call print_str
     call finish_print
 %endmacro
 
 %macro PRINTLN 1
-    mov si, %1
+    mov esi, %1
     call print_str
-    call newline
+    call terminate_line
     call finish_print
 %endmacro
 
+[BITS 16]               ; 16-bit instructions
 [ORG 0x7C00]            ; boot sector memory address
 
+    jmp kernel_init
+
+gdt_start:
+
+gdt_null:               ; null segment
+    dq 0
+
+gdt_code:               ; code segment
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 0b10011010
+    db 0b11001111
+    db 0x00
+
+gdt_data:               ; data segment
+    dw 0xFFFF
+    dw 0x0000
+    db 0x000
+    db 0b10010010
+    db 0b11001111
+    db 0x00
+
+gdt_end:                ; end of GDT
+
+gdt_descriptor:         ; GDT descriptor
+    dw gdt_end - gdt_start
+    dd gdt_start
+
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
+
+fill_segments:          ; fill all segment registers (except for CS) with value from AX
+    mov ss, ax
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ret
+
+kernel_init:            ; kernel initialization (enter protected mode)
+    cli
+
+    mov ax, 0
+    call fill_segments  ; set up segment registers
+
+    mov sp, 0xFFFC      ; set 16-bit stack pointer
+
+    lgdt [gdt_descriptor]   ; load GDT
+
+    mov eax, cr0        ; enable bit 0 of CR0
+    or eax, 0b1
+    mov cr0, eax
+
+    jmp CODE_SEG:main32 ; jump to main protected mode code
+
+[BITS 32]               ; 32-bit instructions
+
+main32:
     cli                 ; disable interrupts (during initialization)
     cld                 ; lowest-to-highest byte string direction
 
-    mov ax, 0           ; prepare 0 in AX register
-    mov ds, ax          ; set data segment to 0
-    mov ss, ax          ; set stack segment to 0
-    mov gs, ax          ; set G segment (used by interrupts) to 0
-    mov sp, 0x9C00      ; set top of stack to address 0x2000 behind the beginning of the code
+    mov ax, DATA_SEG
+    call fill_segments  ; set up segment registers
 
-    mov ax, 0xB800      ; VGA text buffer address
-    mov es, ax
+    mov ebp, 0x90000
+    mov esp, ebp        ; set 32-bit stack pointer
 
-    mov bx, 0x09        ; keyboard hardware interrupt ID
-    shl bx, 2           ; shift left by 2 bits
-    mov [gs:bx], word keyhandler    ; set keyboard interrupt procedure address
-    mov [gs:bx+2], ds   ; set keyboard interrupt procedure segment (presumably)
-    sti                 ; enable interrupts
+    ; mov bx, 0x09        ; keyboard hardware interrupt ID
+    ; shl bx, 2           ; shift left by 2 bits
+    ; mov [gs:bx], word keyhandler    ; set keyboard interrupt procedure address
+    ; mov [gs:bx+2], ds   ; set keyboard interrupt procedure segment (presumably)
+    ; sti                 ; enable interrupts
 
     PRINTLN msg         ; print string
 
     mov eax, 0x1234ABCD ; move test value to EAX
     call print16        ; print value in EAX
 
+    mov eax, CODE_SEG
+    call print32
+
+    mov eax, DATA_SEG
+    call print32
+
 hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
 
-print_str_char:
-    call print_char     ; print single character
-print_str:
+print_str:              ; print string
+    pusha               ; push all registers onto stack
+    call get_cur_pos
+    mov ah, 0x0F        ; attribute byte - white on black
+
+print_loop:             ; print single character
     lodsb               ; load next string character / byte
     cmp al, 0           ; check for null string termination character
-    jne print_str_char  ; string printing loop
+    je print_done
+    stosw               ; write char + attribute word
 
-    ret
-
-print_char:
-    mov ah, 0x0F        ; attribute byte - white on black
-    mov dx, ax          ; store character and attribute in CX
-
-    call get_cur_pos
-
-    mov ax, dx          ; restore char/attribute
-    stosw               ; write char/attribute
-    add byte [xpos], 1  ; advance to right
-
+    inc byte [xpos]     ; advance to right
     cmp byte [xpos], COLUMNS    ; if current line is full
-    jne print_char_done
+    jne print_loop
     call newline        ; move on to next line
+    jmp print_loop      ; string printing loop
 
-print_char_done:
-    ret
-
-finish_print:
-    call clear_line
-    call update_cursor
-
+print_done:
+    popa                ; pop all registers from stack
     ret
 
 clear_line:
     call get_cur_pos
 
-    mov cx, COLUMNS
-    movzx ax, byte [xpos]
-    sub cx, ax          ; calculate trailing empty columns on current line
+    mov ecx, COLUMNS
+    movzx eax, byte [xpos]
+    sub ecx, eax        ; calculate trailing empty columns on current line
 
-    mov ah, 0x00        ; black foreground on black background
+    mov ah, 0x0F        ; black foreground on black background
     mov al, 0x20        ; space character
 
 clear_line_inner:
@@ -93,23 +146,25 @@ clear_line_inner:
     ret
 
 get_cur_pos:            ; get absolute cursor position (buffer index) and put it into DI
-    movzx ax, byte [ypos]
-    mov dx, COLUMNS * 2 ; 160 bytes per line (80 columns, 2 bytes per column / character)
-    mul dx              ; multiply Y position by number of bytes per line
-    movzx bx, byte [xpos]
-    shl bx, 1           ; take X position and multiply it by 2 to skip attributes
+    movzx eax, byte [ypos]
+    mov edx, COLUMNS * 2    ; 160 bytes per line (80 columns, 2 bytes per column / character)
+    mul edx             ; multiply Y position by number of bytes per line
+    movzx ebx, byte [xpos]
+    shl ebx, 1          ; take X position and multiply it by 2 to skip attributes
 
-    mov di, ax          ; set index to Y offset
-    add di, bx          ; add X offset
+    mov edi, 0xB8000    ; VGA text buffer address
+    add edi, eax        ; add Y offset
+    add edi, ebx        ; add X offset
 
     ret
 
 update_cursor:          ; update VGA cursor position
-    movzx ax, byte [ypos]   ; get cursor Y position
-    mov bx, COLUMNS     ; screen width (presumably 80)
-    mul bx              ; multiply it by screen width
-    movzx bx, byte [xpos]   ; get cursor X position
-    add bx, ax          ; absolute cursor position (Y * width + X) is now in BX
+    movzx eax, byte [ypos]  ; get cursor Y position
+    mov ebx, COLUMNS    ; screen width (presumably 80)
+    mul ebx             ; multiply it by screen width
+
+    movzx ebx, byte [xpos]  ; get cursor X position
+    add ebx, eax        ; absolute cursor position (Y * width + X) is now in BX
 
     mov dx, 0x3D4
     mov al, 0x0F
@@ -132,38 +187,48 @@ update_cursor:          ; update VGA cursor position
     ret
 
 print8:                 ; print 8-bit value in AL
-    mov cx, 2
+    mov ecx, 2
     jmp printhex
 
 print16:                ; print 16-bit value in AX
-    mov cx, 4
+    mov ecx, 4
     jmp printhex
 
 print32:                ; print 32-bit value in EAX
-    mov cx, 8
+    mov ecx, 8
     jmp printhex
 
 printhex:
-    mov si, hextab      ; copy hex table base address into source register
+    mov esi, hextab     ; copy hex table base address into source register
 
-    mov bx, hexstr + 8  ; get end address of output hex string
-    mov di, bx          ; copy end address to destination register
-    sub bx, cx          ; subtract number of digits from end address to get beginning address
-    mov [hexaddr], bx   ; store beginning address in memory for later printing
+    mov ebx, hexstr + 8 ; get end address of output hex string
+    mov edi, ebx        ; copy end address to destination register
+    sub ebx, ecx        ; subtract number of digits from end address to get beginning address
+    mov [hexaddr], ebx  ; store beginning address in memory for later printing
 
 hexloop:
-    dec di              ; decrement output hex string index (move one character to left)
+    dec edi             ; decrement output hex string index (move one character to left)
     mov ebx, eax        ; copy value to EBX
     and ebx, 0xF        ; extract last 4 bits
-    mov bl, [si + bx]   ; copy character from hex table
-    mov [di], bl        ; copy character to output hex string
+    mov bl, [esi + ebx] ; copy character from hex table
+    mov [edi], bl       ; copy character to output hex string
     shr eax, 4          ; shift right by 4 bits
-    dec cx              ; decrement input value 4-bit block counter
+    dec ecx             ; decrement input value 4-bit block counter
     jnz hexloop         ; if there are more 4-bit blocks to process, keep going
 
     PRINT hexpre        ; print hex value prefix (0x)
     PRINTLN [hexaddr]   ; print output hex string
 
+    ret
+
+finish_print:
+    call clear_line
+    call update_cursor
+    ret
+
+terminate_line:
+    call clear_line
+    call newline
     ret
 
 newline:
@@ -177,38 +242,38 @@ newline:
 newline_done:
     ret
 
-keyhandler:
-    in al, 0x60         ; read key data
-    mov bl, al          ; save it for later use
-    mov byte [port60], al   ; save it for printing
+; keyhandler:
+;     in al, 0x60         ; read key data
+;     mov bl, al          ; save it for later use
+;     mov byte [port60], al   ; save it for printing
 
-    in al, 0x61         ; read more key data
-    mov ah, al          ; make copy of AL in AH
-    or al, 0x80         ; disable bit 7 (set it to 1)
-    out 0x61, al        ; send it back (with bit 7 disabled)
-    mov al, ah          ; move unmodified value back to AL
-    out 0x61, al        ; send unmodified value back (with bit 7 in original state)
+;     in al, 0x61         ; read more key data
+;     mov ah, al          ; make copy of AL in AH
+;     or al, 0x80         ; disable bit 7 (set it to 1)
+;     out 0x61, al        ; send it back (with bit 7 disabled)
+;     mov al, ah          ; move unmodified value back to AL
+;     out 0x61, al        ; send unmodified value back (with bit 7 in original state)
 
-    mov al, 0x20        ; end-of-interrupt code
-    out 0x20, al        ; send end-of-interrupt signal
+;     mov al, 0x20        ; end-of-interrupt code
+;     out 0x20, al        ; send end-of-interrupt signal
 
-    and bl, 0x80        ; check if key was pressed or released
-    jnz keyhandler_done ; do not print released keys
+;     and bl, 0x80        ; check if key was pressed or released
+;     jnz keyhandler_done ; do not print released keys
 
-    mov al, byte [port60]
-    call print8         ; print key scan code
+;     mov al, byte [port60]
+;     call print8         ; print key scan code
 
-    mov si, keytab      ; get scan-code-to-ASCII table base address
-    movzx ax, byte [port60] ; copy last received scan code
-    add si, ax          ; add scan code to base table address as index / offset
-    mov al, [si]        ; read ASCII value from table at index specified by scan code
+;     mov si, keytab      ; get scan-code-to-ASCII table base address
+;     movzx ax, byte [port60] ; copy last received scan code
+;     add si, ax          ; add scan code to base table address as index / offset
+;     mov al, [si]        ; read ASCII value from table at index specified by scan code
 
-    call print_char     ; print converted ASCII character
-    call newline        ; terminate line
-    call finish_print   ; perform after-print procedures
+;     call print_char     ; print converted ASCII character
+;     call newline        ; terminate line
+;     call finish_print   ; perform after-print procedures
 
-keyhandler_done:
-    iret
+; keyhandler_done:
+;     iret
 
 ; ============================================
 ; ================    DATA    ================
@@ -223,11 +288,11 @@ hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dw 0
 
-port60  db 0
+; port60  db 0
 
-; conversion table from keyboard key scan code to ASCII
-keytab  db 0x3F, 0x3F, "1234567890"
-    times 64 db 0x3F
+; ; conversion table from keyboard key scan code to ASCII
+; keytab  db 0x3F, 0x3F, "1234567890"
+;     times 64 db 0x3F
 
 msg     db "Hello World!", 0
 
