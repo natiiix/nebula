@@ -1,8 +1,14 @@
-boot.bin: *.asm
-	nasm -w+all boot.asm -f bin -o boot.bin
+ASM=boot.asm
+BIN=boot.bin
+
+$(BIN): $(ASM)
+	nasm -w+all -f bin -o $(BIN) $(ASM)
 
 clean:
-	rm boot.bin
+	rm $(BIN)
 
-disassemble:
-	objdump -b binary -Mintel -mi386 -Maddr16,data16 -D boot.bin
+disassemble: $(BIN)
+	objdump -b binary -Mintel -mi386 -Maddr16,data16 -D $(BIN)
+
+hex: $(BIN)
+	xxd $(BIN) | less
