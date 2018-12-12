@@ -129,18 +129,18 @@ CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 
 fill_segments:          ; fill all segment registers (except for CS) with value from AX
-    mov ss, ax
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
+    mov ss, eax
+    mov ds, eax
+    mov es, eax
+    mov fs, eax
+    mov gs, eax
 
     ret
 
 kernel_init:            ; kernel initialization (enter protected mode)
     cli
 
-    mov ax, 0
+    mov eax, 0
     call fill_segments  ; set up segment registers
 
     mov sp, 0xFFFC      ; set 16-bit stack pointer
@@ -159,7 +159,7 @@ main32:
     cli                 ; disable interrupts (during initialization)
     cld                 ; lowest-to-highest byte string direction
 
-    mov ax, DATA_SEG
+    mov eax, DATA_SEG
     call fill_segments  ; set up segment registers
 
     mov ebp, 0x90000
@@ -186,7 +186,13 @@ hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
 
-print_char:             ; print single character
+print_char:
+    mov cl, al          ; move character to temporary register
+    call get_cur_pos    ; get current cursor index
+    mov ah, 0x0F        ; attribute byte - white on black
+    mov al, cl          ; restore character from temporary register
+
+print_char_inner:       ; print single character
     stosw               ; write char + attribute word
 
     inc byte [xpos]     ; advance to right
@@ -199,7 +205,7 @@ print_char_done:
 
 print_str:              ; print string
     pusha               ; push all registers onto stack
-    call get_cur_pos
+    call get_cur_pos    ; get initial cusror index
     mov ah, 0x0F        ; attribute byte - white on black
 
 print_loop:
@@ -207,7 +213,7 @@ print_loop:
     cmp al, 0           ; check for null string termination character
     je print_done       ; break loop at null character
 
-    call print_char     ; print single character
+    call print_char_inner     ; print single character
     jmp print_loop      ; string printing loop
 
 print_done:
@@ -326,38 +332,38 @@ newline:
 newline_done:
     ret
 
-; keyhandler:
-;     in al, 0x60         ; read key data
-;     mov bl, al          ; save it for later use
-;     mov byte [port60], al   ; save it for printing
+keyhandler:
+    in al, 0x60         ; read key data
+    mov bl, al          ; save it for later use
+    mov byte [port60], al   ; save it for printing
 
-;     in al, 0x61         ; read more key data
-;     mov ah, al          ; make copy of AL in AH
-;     or al, 0x80         ; disable bit 7 (set it to 1)
-;     out 0x61, al        ; send it back (with bit 7 disabled)
-;     mov al, ah          ; move unmodified value back to AL
-;     out 0x61, al        ; send unmodified value back (with bit 7 in original state)
+    in al, 0x61         ; read more key data
+    mov ah, al          ; make copy of AL in AH
+    or al, 0x80         ; disable bit 7 (set it to 1)
+    out 0x61, al        ; send it back (with bit 7 disabled)
+    mov al, ah          ; move unmodified value back to AL
+    out 0x61, al        ; send unmodified value back (with bit 7 in original state)
 
-;     mov al, 0x20        ; end-of-interrupt code
-;     out 0x20, al        ; send end-of-interrupt signal
+    mov al, 0x20        ; end-of-interrupt code
+    out 0x20, al        ; send end-of-interrupt signal
 
-;     and bl, 0x80        ; check if key was pressed or released
-;     jnz keyhandler_done ; do not print released keys
+    and bl, 0x80        ; check if key was pressed or released
+    jnz keyhandler_done ; do not print released keys
 
-;     mov al, byte [port60]
-;     call print8         ; print key scan code
+    mov al, byte [port60]
+    call print8         ; print key scan code
 
-;     mov si, keytab      ; get scan-code-to-ASCII table base address
-;     movzx ax, byte [port60] ; copy last received scan code
-;     add si, ax          ; add scan code to base table address as index / offset
-;     mov al, [si]        ; read ASCII value from table at index specified by scan code
+    mov si, keytab      ; get scan-code-to-ASCII table base address
+    movzx ax, byte [port60] ; copy last received scan code
+    add si, ax          ; add scan code to base table address as index / offset
+    mov al, [si]        ; read ASCII value from table at index specified by scan code
 
-;     call print_char     ; print converted ASCII character
-;     call newline        ; terminate line
-;     call finish_print   ; perform after-print procedures
+    call print_char     ; print converted ASCII character
+    call newline        ; terminate line
+    call finish_print   ; perform after-print procedures
 
-; keyhandler_done:
-;     iret
+keyhandler_done:
+    iret
 
 ; ============================================
 ; ================    DATA    ================
@@ -372,11 +378,11 @@ hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dw 0
 
-; port60  db 0
+port60  db 0
 
-; ; conversion table from keyboard key scan code to ASCII
-; keytab  db 0x3F, 0x3F, "1234567890"
-;     times 64 db 0x3F
+; conversion table from keyboard key scan code to ASCII
+keytab  db 0x3F, 0x3F, "1234567890"
+    times 64 db 0x3F
 
 msg     db "Hello World!", 0
 
