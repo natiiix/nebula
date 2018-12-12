@@ -39,7 +39,7 @@ start:
 	mov ss, ax
 	mov sp, STACK_SIZE * 16 ; 4096 in bytes
 
-	sti ; enable interrupts
+	sti                 ; enable interrupts
 
 	mov ax, 0			; point all segments to _start
 	mov ds, ax
@@ -49,8 +49,8 @@ start:
 
 	; dl contains the drive number
 
-	mov ax, 0			    ; reset disk function
-	int 0x13				; call BIOS interrupt
+	mov ax, 0			; reset disk function
+	int 0x13			; call BIOS interrupt
 	jc fatal
 
 	; FIXME: if SECTORS + 1 > 18 (~= max sectors per track)
@@ -72,7 +72,7 @@ start:
 
 	push es			    ; save es
 
-	mov ax, 0x07E0	    ; destination location (address of _start)
+	mov ax, 0x07E0	    ; destination location (second segment)
 	mov es, ax		    ; destination location
 	mov bx, 0		    ; index 0
 
@@ -87,13 +87,10 @@ start:
 
 	pop es				; restore es
 
-	jmp 0x07E0:0x0000		; jump to _start (a.k.a stage 2)
+	jmp 0x07E0:0x0000	; jump to kernel_init (a.k.a stage 2)
 
 fatal:
-	mov ax, 0	; wait for a keypress
-	int 0x16
-
-	mov ax, 0	; reboot
+	mov ax, 0	        ; reboot
 	int 0x19
 
 times 510-($-$$) db 0   ; pad with zeroes to fill first segment (bootloader segment)
@@ -124,7 +121,7 @@ gdt_data:               ; data segment
 
 gdt_end:                ; end of GDT
 
-gdt_descriptor:         ; GDT descriptor
+gdt_desc:               ; GDT descriptor
     dw gdt_end - gdt_start
     dd gdt_start
 
@@ -148,7 +145,7 @@ kernel_init:            ; kernel initialization (enter protected mode)
 
     mov sp, 0xFFFC      ; set 16-bit stack pointer
 
-    lgdt [gdt_descriptor]   ; load GDT
+    lgdt [gdt_desc]     ; load GDT
 
     mov eax, cr0        ; enable bit 0 of CR0
     or eax, 0b1
@@ -189,21 +186,28 @@ hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
 
+print_char:             ; print single character
+    stosw               ; write char + attribute word
+
+    inc byte [xpos]     ; advance to right
+    cmp byte [xpos], COLUMNS    ; if current line is full
+    jne print_char_done
+    call newline        ; move on to next line
+
+print_char_done:
+    ret
+
 print_str:              ; print string
     pusha               ; push all registers onto stack
     call get_cur_pos
     mov ah, 0x0F        ; attribute byte - white on black
 
-print_loop:             ; print single character
+print_loop:
     lodsb               ; load next string character / byte
     cmp al, 0           ; check for null string termination character
-    je print_done
-    stosw               ; write char + attribute word
+    je print_done       ; break loop at null character
 
-    inc byte [xpos]     ; advance to right
-    cmp byte [xpos], COLUMNS    ; if current line is full
-    jne print_loop
-    call newline        ; move on to next line
+    call print_char     ; print single character
     jmp print_loop      ; string printing loop
 
 print_done:
