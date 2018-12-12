@@ -41,7 +41,7 @@ start:
 
 	sti ; enable interrupts
 
-	mov ax, 07C0h			; point all segments to _start
+	mov ax, 0			; point all segments to _start
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
@@ -49,8 +49,8 @@ start:
 
 	; dl contains the drive number
 
-	mov ax, 0				; reset disk function
-	int 13h					; call BIOS interrupt
+	mov ax, 0			    ; reset disk function
+	int 0x13				; call BIOS interrupt
 	jc fatal
 
 	; FIXME: if SECTORS + 1 > 18 (~= max sectors per track)
@@ -70,31 +70,31 @@ start:
 	; take the time and scroll down below) is *loaded* automatically by BIOS
 	; and therefore there is no need to read it again ...
 
-	push es				; save es
+	push es			    ; save es
 
-	mov ax, 07E0h		; destination location (address of _start)
-	mov es, ax			; destination location
-	mov bx, 0			; index 0
+	mov ax, 0x07E0	    ; destination location (address of _start)
+	mov es, ax		    ; destination location
+	mov bx, 0		    ; index 0
 
-	mov ah, 2			; read sectors function
-	mov al, SECTORS		; number of sectors
-	mov ch, 0			; cylinder number
-	mov dh, 0			; head number
-	mov cl, 2			; starting sector number
-	int 13h				; call BIOS interrupt
+	mov ah, 2		    ; read sectors function
+	mov al, SECTORS	    ; number of sectors
+	mov ch, 0		    ; cylinder number
+	mov dh, 0		    ; head number
+	mov cl, 2		    ; starting sector number
+	int 0x13		    ; call BIOS interrupt
 
 	jc fatal
 
 	pop es				; restore es
 
-	jmp 07E0h:0000h		; jump to _start (a.k.a stage 2)
+	jmp 0x07E0:0x0000		; jump to _start (a.k.a stage 2)
 
 fatal:
 	mov ax, 0	; wait for a keypress
-	int 16h
+	int 0x16
 
 	mov ax, 0	; reboot
-	int 19h
+	int 0x19
 
 times 510-($-$$) db 0   ; pad with zeroes to fill first segment (bootloader segment)
     dw 0xAA55           ; terminate first sector with bootloader sector signature
