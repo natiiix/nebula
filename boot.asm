@@ -165,12 +165,6 @@ main32:
     mov ebp, 0x90000
     mov esp, ebp        ; set 32-bit stack pointer
 
-    ; mov bx, 0x09        ; keyboard hardware interrupt ID
-    ; shl bx, 2           ; shift left by 2 bits
-    ; mov [gs:bx], word keyhandler    ; set keyboard interrupt procedure address
-    ; mov [gs:bx+2], ds   ; set keyboard interrupt procedure segment (presumably)
-    ; sti                 ; enable interrupts
-
     PRINTLN msg         ; print string
 
     mov eax, 0x1234ABCD ; move test value to EAX
@@ -181,6 +175,44 @@ main32:
 
     mov eax, DATA_SEG
     call print32
+
+    ; ICW1 - begin initialization
+    mov al, 0x11
+    out 0x20, al
+    out 0xA0, al
+
+    ; ICW2 - remap offset address of idt_table
+    ; In x86 protected mode, we have to remap the PICs beyond 0x20 because
+    ; Intel have designated the first 32 interrupts as "reserved" for cpu exceptions
+    mov al, 0x20
+    out 0x21, al
+    mov al, 0x28
+    out 0xA1, al
+
+    ; ICW3 - setup cascading
+    mov al, 0
+    out 0x21, al
+    out 0xA1, al
+
+    ; ICW4 - environment info
+    mov al, 1
+    out 0x21, al
+    out 0xA1, al
+
+    ; Initialization finished
+
+    ; mask interrupts
+    mov al, 0xFF
+    out 0x21, al
+    out 0xA1, al
+
+    lidt [idt_desc]     ; load IDT descriptor
+
+    ; 0xFD is 11111101 - enables only IRQ1 (keyboard)
+    mov al, 0xFD
+    out 0x21, al
+
+    sti
 
 hang:
     hlt                 ; halt CPU
@@ -381,9 +413,24 @@ hexaddr dw 0
 port60  db 0
 
 ; conversion table from keyboard key scan code to ASCII
-keytab  db 0x3F, 0x3F, "1234567890"
-    times 64 db 0x3F
+keytab  db "??1234567890"
+    times 256 db '?'
 
 msg     db "Hello World!", 0
+
+_idt:
+    times 0x21 dq 0
+
+    dw keyhandler
+    dw 0x0008
+    db 0
+    db 0x8E
+    dw 0
+
+    times 0xDE dq 0
+
+idt_desc:
+    dw (0x100 * 8) - 1  ; limit
+    dd _idt             ; base
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
