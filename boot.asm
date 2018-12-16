@@ -326,14 +326,14 @@ printhex:
     mov ebx, hexstr + 8 ; get end address of output hex string
     mov edi, ebx        ; copy end address to destination register
     sub ebx, ecx        ; subtract number of digits from end address to get beginning address
-    mov [hexaddr], ebx  ; store beginning address in memory for later printing
+    mov dword [hexaddr], ebx    ; store beginning address in memory for later printing
 
 hexloop:
     dec edi             ; decrement output hex string index (move one character to left)
     mov ebx, eax        ; copy value to EBX
     and ebx, 0xF        ; extract last 4 bits
-    mov bl, [esi + ebx] ; copy character from hex table
-    mov [edi], bl       ; copy character to output hex string
+    mov bl, byte [esi + ebx]    ; copy character from hex table
+    mov byte [edi], bl  ; copy character to output hex string
     shr eax, 4          ; shift right by 4 bits
     dec ecx             ; decrement input value 4-bit block counter
     jnz hexloop         ; if there are more 4-bit blocks to process, keep going
@@ -408,7 +408,7 @@ ypos    db 0
 hextab  db "0123456789ABCDEF"
 hexpre  db "0x", 0
 hexstr  db "00000000", 0
-hexaddr dw 0
+hexaddr dd 0
 
 port60  db 0
 
