@@ -385,10 +385,16 @@ keyhandler:
     mov al, byte [port60]
     call print8         ; print key scan code
 
-    mov si, keytab      ; get scan-code-to-ASCII table base address
     movzx ax, byte [port60] ; copy last received scan code
+    cmp al, 0x40        ; 0x40 and all higher scan codes have no printable character
+    jge keyhandler_done ; if key has no printable char, jump to end of key handler
+
+    mov si, keytab      ; get scan-code-to-ASCII table base address
     add si, ax          ; add scan code to base table address as index / offset
     mov al, [si]        ; read ASCII value from table at index specified by scan code
+
+    cmp al, 0           ; null character = non-printable key / scan code
+    je keyhandler_done  ; skip printing of null characters
 
     call print_char     ; print converted ASCII character
     call newline        ; terminate line
@@ -413,8 +419,7 @@ hexaddr dd 0
 port60  db 0
 
 ; conversion table from keyboard key scan code to ASCII
-keytab  db "??1234567890"
-    times 256 db '?'
+keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', 0, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
 
 msg     db "Hello World!", 0
 
