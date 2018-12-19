@@ -2,6 +2,8 @@
 %define COLUMNS 80
 ; screen height (25 rows / lines)
 %define ROWS 25
+; VGA text buffer base address
+%define TEXT_BUFFER 0xB8000
 
 %macro PRINT 1
     mov esi, %1
@@ -267,6 +269,23 @@ clear_line_inner:
     loop clear_line_inner
     ret
 
+clear_screen:
+    mov byte [xpos], 0
+    mov byte [ypos], 0
+
+    call update_cursor  ; reset cursor position to 0,0
+
+    mov ecx, COLUMNS * ROWS ; number of characters on screen
+    mov edi, TEXT_BUFFER    ; VGA text buffer base address
+
+    mov ah, 0x0F        ; black foreground on black background
+    mov al, 0x20        ; space character
+
+clear_screen_inner:
+    stosw
+    loop clear_line_inner   ; clear screen character by character
+    ret
+
 get_cur_pos:            ; get absolute cursor position (buffer index) and put it into DI
     movzx eax, byte [ypos]
     mov edx, COLUMNS * 2    ; 160 bytes per line (80 columns, 2 bytes per column / character)
@@ -274,7 +293,7 @@ get_cur_pos:            ; get absolute cursor position (buffer index) and put it
     movzx ebx, byte [xpos]
     shl ebx, 1          ; take X position and multiply it by 2 to skip attributes
 
-    mov edi, 0xB8000    ; VGA text buffer address
+    mov edi, TEXT_BUFFER    ; VGA text buffer address
     add edi, eax        ; add Y offset
     add edi, ebx        ; add X offset
 
