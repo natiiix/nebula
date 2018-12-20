@@ -398,10 +398,15 @@ keyhandler:
     mov al, 0x20        ; end-of-interrupt code
     out 0x20, al        ; send end-of-interrupt signal
 
+    mov al, bl          ; copy scan code back from BL to AL
+    and ax, 0x7F        ; clear highest bit (indicates press/release) and AH
+    mov di, keydown     ; get base address of key state table
+    add di, ax          ; add scan code as offset to state table address
+
     and bl, 0x80        ; check if key was pressed or released
+    mov [di], bl        ; store key state in state table
     jnz keyhandler_done ; do not print released keys
 
-    mov al, byte [port60]
     call print8         ; print key scan code
 
     movzx ax, byte [port60] ; copy last received scan code
@@ -439,6 +444,9 @@ port60  db 0
 
 ; conversion table from keyboard key scan code to ASCII
 keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', 0, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
+
+; table of key states (which keys are currently pressed down)
+keydown times 0x80 db 0
 
 msg     db "Hello World!", 0
 
