@@ -386,7 +386,6 @@ newline_done:
 keyhandler:
     in al, 0x60         ; read key data
     mov bl, al          ; save it for later use
-    mov byte [port60], al   ; save it for printing
 
     in al, 0x61         ; read more key data
     mov ah, al          ; make copy of AL in AH
@@ -399,7 +398,7 @@ keyhandler:
     out 0x20, al        ; send end-of-interrupt signal
 
     mov al, bl          ; copy scan code back from BL to AL
-    and ax, 0x7F        ; clear highest bit (indicates press/release) and AH
+    and ax, 0x007F      ; clear highest bit (indicates press/release) and AH
     mov di, keydown     ; get base address of key state table
     add di, ax          ; add scan code as offset to state table address
 
@@ -407,9 +406,10 @@ keyhandler:
     mov [di], bl        ; store key state in state table
     jnz keyhandler_done ; do not print released keys
 
+    push ax             ; store scan code on stack
     call print8         ; print key scan code
 
-    movzx ax, byte [port60] ; copy last received scan code
+    pop ax              ; restore scan code from stack
     cmp al, 0x40        ; 0x40 and all higher scan codes have no printable character
     jge keyhandler_done ; if key has no printable char, jump to end of key handler
 
@@ -439,8 +439,6 @@ hextab  db "0123456789ABCDEF"
 hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dd 0
-
-port60  db 0
 
 ; conversion table from keyboard key scan code to ASCII
 keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', 0, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
