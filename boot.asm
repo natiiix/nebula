@@ -384,6 +384,8 @@ newline_done:
     ret
 
 keyhandler:
+    pusha               ; push all registers onto stack
+
     in al, 0x60         ; read key data
     mov bl, al          ; save it for later use
 
@@ -425,6 +427,7 @@ keyhandler:
     call finish_print   ; perform after-print procedures
 
 keyhandler_done:
+    popa                ; restore all registers from stack
     iret
 
 ; ============================================
