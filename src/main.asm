@@ -113,6 +113,8 @@ main32:
 
     sti
 
+    jmp key_loop        ; jump to infinite synchronous key handling loop
+
 hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
@@ -301,36 +303,74 @@ keyhandler:
     mov al, 0x20        ; end-of-interrupt code
     out 0x20, al        ; send end-of-interrupt signal
 
-    mov al, bl          ; copy scan code back from BL to AL
-    and ax, 0x007F      ; clear highest bit (indicates press/release) and AH
-    mov di, keydown     ; get base address of key state table
-    add di, ax          ; add scan code as offset to state table address
+    mov edi, keybuff    ; get key buffer base address
+    movzx eax, byte [keybuff_end]   ; get key buffer end index
+    add edi, eax        ; add index to key buffer base address
+    mov [edi], bl       ; store scan code in key buffer
 
-    and bl, 0x80        ; check if key was pressed or released
-    mov [di], bl        ; store key state in state table
-    jnz keyhandler_done ; do not print released keys
+    inc eax             ; increment key buffer end index
+    mov [keybuff_end], al   ; overflow is handled automatically because index is single-byte
+                            ; and there are 256 positions in key buffer
 
-    push ax             ; store scan code on stack
-    call print8         ; print key scan code
+    popa                ; restore all registers from stack
+    iret
 
-    pop ax              ; restore scan code from stack
-    cmp al, 0x40        ; 0x40 and all higher scan codes have no printable character
-    jge keyhandler_done ; if key has no printable char, jump to end of key handler
+key_loop:
+    call key_get        ; get scan code from key buffer
 
-    mov si, keytab      ; get scan-code-to-ASCII table base address
-    add si, ax          ; add scan code to base table address as index / offset
-    mov al, [si]        ; read ASCII value from table at index specified by scan code
+    cmp eax, 0          ; if scan code is 0 / null
+    je key_loop         ; do nothing
+
+    push eax            ; store scan code on stack
+    call print32        ; print key scan code
+    pop eax             ; restore scan code from stack
+
+    cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
+    jge key_loop        ; if key has no printable char, jump to end of key handler
+
+    mov esi, keytab     ; get scan-code-to-ASCII table base address
+    add esi, eax        ; add scan code to base table address as index / offset
+    mov al, [esi]       ; read ASCII value from table at index specified by scan code
 
     cmp al, 0           ; null character = non-printable key / scan code
-    je keyhandler_done  ; skip printing of null characters
+    je key_loop         ; skip printing of null characters
 
     call print_char     ; print converted ASCII character
     call newline        ; terminate line
     call finish_print   ; perform after-print procedures
 
-keyhandler_done:
-    popa                ; restore all registers from stack
-    iret
+    jmp key_loop
+
+key_get:
+    movzx eax, byte [keybuff_end]   ; get key buffer end index
+    movzx ebx, byte [keybuff_start] ; get key buffer start index
+
+    cmp eax, ebx        ; compare start index to end index
+    je key_get_empty    ; if start = end, then key buffer is empty
+
+    mov edi, keybuff    ; get key buffer base address
+    add edi, ebx        ; add start index to key buffer address
+    movzx eax, byte [edi]   ; read oldest scan code from key buffer
+
+    inc ebx             ; increment start index (overflow is automatic thanks to single-byte size)
+    mov [keybuff_start], bl ; store increment start index in memory
+
+    mov ebx, eax        ; copy scan code to EBX
+
+    and ebx, 0x0000007F ; only keep lowest 7 bits (identifies actual key)
+    mov edi, keydown    ; get base address of key state table
+    add edi, ebx        ; add scan code as offset to state table address
+
+    mov ebx, eax        ; copy scan code to EBX
+
+    and bl, 0x80        ; check if key was pressed or released
+    mov [edi], bl       ; store key state in state table
+
+    ret
+
+key_get_empty:
+    mov eax, 0          ; return 0 / null scan code
+    ret
 
 ; ============================================
 ; ================    DATA    ================
@@ -345,11 +385,15 @@ hexpre  db "0x", 0
 hexstr  db "00000000", 0
 hexaddr dd 0
 
+keybuff times 0x100 db 0
+keybuff_start   db 0
+keybuff_end     db 0
+
 ; conversion table from keyboard key scan code to ASCII
 keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
 
 ; table of key states (which keys are currently pressed down)
-keydown times 0x80 db 0
+keydown times 0x80 db 0x80
 
 msg     db "Hello World!", 0
 
