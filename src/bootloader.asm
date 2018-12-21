@@ -1,3 +1,7 @@
+%define SECTORS 16							; keep it under 18
+%define IMAGE_SIZE ((SECTORS + 1) * 512)	; SECTORS + 1 (~= 18) * 512 bytes
+%define STACK_SIZE 256						; 4096 bytes in paragraphs
+
 start:
 	cli ; disable interrupts
 
