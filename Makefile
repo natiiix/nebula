@@ -1,5 +1,5 @@
-ASM=boot.asm
-BIN=boot.bin
+ASM=src/main.asm
+BIN=bin/nebula.bin
 
 $(BIN): $(ASM)
 	nasm -w+all -f bin -o $(BIN) $(ASM)
