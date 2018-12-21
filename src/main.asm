@@ -353,19 +353,6 @@ keydown times 0x80 db 0
 
 msg     db "Hello World!", 0
 
-_idt:
-    times 0x21 dq 0
-
-    dw keyhandler
-    dw 0x0008
-    db 0
-    db 0x8E
-    dw 0
-
-    times 0xDE dq 0
-
-idt_desc:
-    dw (0x100 * 8) - 1  ; limit
-    dd _idt             ; base
+%include "idt.asm"
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
