@@ -326,7 +326,7 @@ key_loop:
     pop eax             ; restore scan code from stack
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
-    jge key_loop        ; if key has no printable char, jump to end of key handler
+    jae key_loop        ; if key has no printable char, jump to end of key handler
 
     mov esi, keytab     ; get scan-code-to-ASCII table base address
     add esi, eax        ; add scan code to base table address as index / offset
