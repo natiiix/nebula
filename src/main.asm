@@ -340,7 +340,7 @@ key_loop:
     je key_loop         ; do nothing
 
     push eax            ; store scan code on stack
-    call print32        ; print key scan code
+    call print8         ; print key scan code
     pop eax             ; restore scan code from stack
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
