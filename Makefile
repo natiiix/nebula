@@ -1,8 +1,9 @@
-ASM=src/main.asm
+SRC=src/
+ASM=$(SRC)main.asm
 BIN=bin/nebula.bin
 
-$(BIN): src/*.asm
-	nasm -w+all -f bin -o $(BIN) $(ASM)
+$(BIN): $(SRC)*.asm
+	nasm -w+all -f bin -i $(SRC) -o $(BIN) $(ASM)
 
 clean:
 	rm $(BIN)
