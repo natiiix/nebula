@@ -5,6 +5,9 @@
 ; VGA text buffer base address
 %define TEXT_BUFFER 0xB8000
 
+; line feed character
+%define LF 10
+
 %macro PRINT 1
     mov esi, %1
     call print_str
@@ -115,6 +118,9 @@ hang:
     jmp hang            ; infinite hang loop
 
 print_char:
+    cmp al, LF          ; if character is line feed
+    je print_char_newline   ; print nothing to screen, but move to new line
+
     mov cl, al          ; move character to temporary register
     call get_cur_pos    ; get current cursor index
     mov ah, 0x0F        ; attribute byte - white on black
@@ -126,6 +132,8 @@ print_char_inner:       ; print single character
     inc byte [xpos]     ; advance to right
     cmp byte [xpos], COLUMNS    ; if current line is full
     jne print_char_done
+
+print_char_newline:
     call newline        ; move on to next line
 
 print_char_done:
@@ -338,7 +346,7 @@ hexstr  db "00000000", 0
 hexaddr dd 0
 
 ; conversion table from keyboard key scan code to ASCII
-keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', 0, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
+keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
 
 ; table of key states (which keys are currently pressed down)
 keydown times 0x80 db 0
