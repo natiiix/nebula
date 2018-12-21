@@ -315,6 +315,24 @@ keyhandler:
     popa                ; restore all registers from stack
     iret
 
+get_keytab:
+    movzx ebx, byte [keystate + 0x2A]   ; get state of left shift key
+
+    cmp ebx, 0          ; if left shift is currently pressed down
+    je get_keytab_shift
+
+    movzx ebx, byte [keystate + 0x36]   ; get state of right shift key
+
+    cmp ebx, 0          ; if right shift is currently pressed down
+    je get_keytab_shift
+
+    mov esi, keytab     ; return normal conversion table
+    ret
+
+get_keytab_shift:
+    mov esi, keytab_shift   ; return shifted conversion table
+    ret
+
 key_loop:
     call key_get        ; get scan code from key buffer
 
@@ -326,9 +344,11 @@ key_loop:
     pop eax             ; restore scan code from stack
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
+                        ; release scan codes have bit 7 enabled,
+                        ; which means they are also handled by this condition
     jae key_loop        ; if key has no printable char, jump to end of key handler
 
-    mov esi, keytab     ; get scan-code-to-ASCII table base address
+    call get_keytab     ; get scan-code-to-ASCII table base address
     add esi, eax        ; add scan code to base table address as index / offset
     mov al, [esi]       ; read ASCII value from table at index specified by scan code
 
@@ -358,7 +378,7 @@ key_get:
     mov ebx, eax        ; copy scan code to EBX
 
     and ebx, 0x0000007F ; only keep lowest 7 bits (identifies actual key)
-    mov edi, keydown    ; get base address of key state table
+    mov edi, keystate   ; get base address of key state table
     add edi, ebx        ; add scan code as offset to state table address
 
     mov ebx, eax        ; copy scan code to EBX
@@ -389,11 +409,14 @@ keybuff times 0x100 db 0
 keybuff_start   db 0
 keybuff_end     db 0
 
-; conversion table from keyboard key scan code to ASCII
-keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\', 'zxcvbnm,./', 0, '*', 0, ' '
+; conversion table from keyboard key scan code to ASCII (with shift key released)
+keytab  db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\zxcvbnm,./', 0, '*', 0, ' '
 
-; table of key states (which keys are currently pressed down)
-keydown times 0x80 db 0x80
+; shifted conversion table from scan code to ASCII (when shift key is held down)
+keytab_shift    db 0, 0, '!@#$%^&*()_+', 0, 0, 'QWERTYUIOP{}', 0, 0, 'ASDFGHJKL:"~', 0, '|ZXCVBNM<>?', 0, 0, 0, ' '
+
+; table of key states (which keys are currently pressed down; 0x00 = pressed; 0x80 = released)
+keystate times 0x80 db 0x80
 
 msg     db "Hello World!", 0
 
