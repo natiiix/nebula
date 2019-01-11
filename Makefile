@@ -1,9 +1,11 @@
 SRC=src/
 ASM=$(SRC)main.asm
 BIN=bin/nebula.bin
+STABLE=bin/stable.bin
 
 $(BIN): $(SRC)*.asm
 	nasm -w+all -f bin -i $(SRC) -o $(BIN) $(ASM)
+	cp ${BIN} ${STABLE}
 
 clean:
 	rm $(BIN)
