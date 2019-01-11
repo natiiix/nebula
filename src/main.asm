@@ -5,6 +5,8 @@
 ; VGA text buffer base address
 %define TEXT_BUFFER 0xB8000
 
+%define PRINT_SCANCODE
+
 ; line feed character
 %define LF 10
 
@@ -339,9 +341,11 @@ key_loop:
     cmp eax, 0          ; if scan code is 0 / null
     je key_loop         ; do nothing
 
+%ifdef PRINT_SCANCODE
     push eax            ; store scan code on stack
     call print8         ; print key scan code
     pop eax             ; restore scan code from stack
+%endif
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
                         ; release scan codes have bit 7 enabled,
@@ -356,7 +360,9 @@ key_loop:
     je key_loop         ; skip printing of null characters
 
     call print_char     ; print converted ASCII character
+%ifdef PRINT_SCANCODE
     call newline        ; terminate line
+%endif
     call finish_print   ; perform after-print procedures
 
     jmp key_loop
