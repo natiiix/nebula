@@ -22,7 +22,7 @@
 
 	sti                 ; enable interrupts
 
-	mov ax, 0			; point all segments to _start
+	mov ax, 0			; point all segment registers to first segment
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
@@ -51,7 +51,7 @@
 	; take the time and scroll down below) is *loaded* automatically by BIOS
 	; and therefore there is no need to read it again ...
 
-	push es			    ; save es
+	push es			    ; save ES
 
 	mov ax, 0x07E0	    ; destination location (second segment)
 	mov es, ax		    ; destination location
@@ -66,9 +66,9 @@
 
 	jc bootloader_fatal
 
-	pop es				; restore es
+	pop es				; restore ES
 
-	jmp 0x07E0:0x0000	; jump to kernel_init (a.k.a stage 2)
+	jmp 0x07E0:0x0000	; jump to second sector (16-bit kernel initialization)
 
 bootloader_fatal:
 	mov ax, 0	        ; reboot
