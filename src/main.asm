@@ -25,7 +25,6 @@
 [ORG 0x7C00]            ; boot sector memory address
 
 %include "bootloader.asm"
-%include "data_gdt.asm"
 
 fill_segments:          ; fill all segment registers (except for CS) with value from AX
     mov ss, eax
@@ -309,6 +308,7 @@ cmdbuff_idx db 0
 
 msg     db "Hello World!", 0
 
+%include "data_gdt.asm"
 %include "data_idt.asm"
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
