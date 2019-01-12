@@ -32,15 +32,6 @@ kernel_init:            ; kernel initialization (enter protected mode)
 
     jmp CODE_SEG:init32 ; jump to protected mode code to finish initialization
 
-fill_segments:          ; fill all segment registers (except for CS) with value from EAX
-    mov ss, eax
-    mov ds, eax
-    mov es, eax
-    mov fs, eax
-    mov gs, eax
-
-    ret
-
 [BITS 32]               ; 32-bit instructions
 
 init32:
@@ -107,6 +98,15 @@ init32:
 hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
+
+fill_segments:          ; fill all segment registers (except for CS) with value from EAX
+    mov ss, eax
+    mov ds, eax
+    mov es, eax
+    mov fs, eax
+    mov gs, eax
+
+    ret
 
 %include "print.asm"
 %include "keyboard.asm"
