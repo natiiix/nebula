@@ -76,5 +76,3 @@ bootloader_fatal:
 
 times 510-($-$$) db 0   ; pad with zeroes to fill first segment (bootloader segment)
     dw 0xAA55           ; terminate first sector with bootloader sector signature
-
-    jmp kernel_init     ; entry point (beginning of second segment)
