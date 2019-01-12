@@ -5,8 +5,7 @@
 ; 4096 bytes in paragraphs
 %define STACK_SIZE 256
 
-start:
-	cli ; disable interrupts
+	cli                 ; disable interrupts
 
 	;
 	; Notes:
@@ -33,7 +32,7 @@ start:
 
 	mov ax, 0			; reset disk function
 	int 0x13			; call BIOS interrupt
-	jc fatal
+	jc bootloader_fatal
 
 	; FIXME: if SECTORS + 1 > 18 (~= max sectors per track)
 	; then we should try to do _multiple_ reads
@@ -65,13 +64,13 @@ start:
 	mov cl, 2		    ; starting sector number
 	int 0x13		    ; call BIOS interrupt
 
-	jc fatal
+	jc bootloader_fatal
 
 	pop es				; restore es
 
 	jmp 0x07E0:0x0000	; jump to kernel_init (a.k.a stage 2)
 
-fatal:
+bootloader_fatal:
 	mov ax, 0	        ; reboot
 	int 0x19
 
