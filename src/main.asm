@@ -30,7 +30,7 @@ kernel_init:            ; kernel initialization (enter protected mode)
     or eax, 0b1
     mov cr0, eax
 
-    jmp CODE_SEG:main32 ; jump to main protected mode code
+    jmp CODE_SEG:init32 ; jump to protected mode code to finish initialization
 
 fill_segments:          ; fill all segment registers (except for CS) with value from EAX
     mov ss, eax
@@ -43,7 +43,7 @@ fill_segments:          ; fill all segment registers (except for CS) with value 
 
 [BITS 32]               ; 32-bit instructions
 
-main32:
+init32:
     cli                 ; disable interrupts (during initialization)
     cld                 ; lowest-to-highest byte string direction
 
