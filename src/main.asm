@@ -28,7 +28,7 @@
 [ORG 0x7C00]            ; boot sector memory address
 
 %include "bootloader.asm"
-%include "gdt.asm"
+%include "data_gdt.asm"
 
 fill_segments:          ; fill all segment registers (except for CS) with value from AX
     mov ss, eax
