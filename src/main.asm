@@ -26,15 +26,6 @@
 
 %include "bootloader.asm"
 
-fill_segments:          ; fill all segment registers (except for CS) with value from AX
-    mov ss, eax
-    mov ds, eax
-    mov es, eax
-    mov fs, eax
-    mov gs, eax
-
-    ret
-
 kernel_init:            ; kernel initialization (enter protected mode)
     cli
 
@@ -50,6 +41,15 @@ kernel_init:            ; kernel initialization (enter protected mode)
     mov cr0, eax
 
     jmp CODE_SEG:main32 ; jump to main protected mode code
+
+fill_segments:          ; fill all segment registers (except for CS) with value from EAX
+    mov ss, eax
+    mov ds, eax
+    mov es, eax
+    mov fs, eax
+    mov gs, eax
+
+    ret
 
 [BITS 32]               ; 32-bit instructions
 
