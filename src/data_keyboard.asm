@@ -10,3 +10,7 @@ keytab_shift    db 0, 0, '!@#$%^&*()_+', 0, 0, 'QWERTYUIOP{}', 0, 0, 'ASDFGHJKL:
 
 ; table of key states (which keys are currently pressed down; 0x00 = pressed; 0x80 = released)
 keystate times 0x80 db 0x80
+
+; command buffer
+cmdbuff times 0x100 db 0
+cmdbuff_idx db 0

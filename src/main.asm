@@ -39,9 +39,6 @@ fill_segments:          ; fill all segment registers (except for CS) with value 
 %include "data_print.asm"
 %include "data_keyboard.asm"
 
-cmdbuff times 0x100 db 0
-cmdbuff_idx db 0
-
 msg     db "Hello World!", 0
 
 %include "data_gdt.asm"
