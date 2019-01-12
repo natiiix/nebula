@@ -5,9 +5,6 @@
 ; VGA text buffer base address
 %define TEXT_BUFFER 0xB8000
 
-; flag used to print keyboard scancodes
-; %define PRINT_SCANCODE
-
 ; line feed character
 %define LF 10
 

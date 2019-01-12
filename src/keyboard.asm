@@ -1,3 +1,6 @@
+; flag used to print keyboard scancodes
+; %define PRINT_SCANCODE
+
 keyhandler:
     pusha               ; push all registers onto stack
 
