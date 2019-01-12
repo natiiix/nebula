@@ -312,6 +312,6 @@ cmdbuff_idx db 0
 
 msg     db "Hello World!", 0
 
-%include "idt.asm"
+%include "data_idt.asm"
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
