@@ -49,6 +49,7 @@ get_keytab:
     mov esi, keytab     ; return normal conversion table
     ret
 
+; @desc This code is executed if either left or right shift key is pressed.
 get_keytab_shift:
     mov esi, keytab_shift   ; return shifted conversion table
     ret
@@ -106,6 +107,7 @@ key_loop:
 
     jmp key_loop
 
+; @desc This code is executed if enter key has been pressed.
 key_enter:
     call newline
     PRINTLN cmdbuff
@@ -115,6 +117,8 @@ key_enter:
 
     jmp key_loop
 
+; @desc Retrieves the oldest scan code from the keyboard buffer.
+; @out  EAX The retrieved keyboard scan code.
 key_get:
     movzx eax, byte [keybuff_end]   ; get key buffer end index
     movzx ebx, byte [keybuff_start] ; get key buffer start index
@@ -142,6 +146,7 @@ key_get:
 
     ret
 
+; @desc This code is executed if the keyboard buffer is empty.
 key_get_empty:
     mov eax, 0          ; return 0 / null scan code
     ret
