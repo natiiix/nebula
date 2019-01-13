@@ -36,12 +36,12 @@ fill_segments:          ; fill all segment registers (except for CS) with value 
 ; ================    DATA    ================
 ; ============================================
 
-%include "data_print.asm"
-%include "data_keyboard.asm"
+%include "data/print.asm"
+%include "data/keyboard.asm"
 
 msg     db "Hello World!", 0
 
-%include "data_gdt.asm"
-%include "data_idt.asm"
+%include "data/gdt.asm"
+%include "data/idt.asm"
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
