@@ -106,16 +106,21 @@ hexloop:
 
     ret
 
+; @desc Clears the current line and updates the VGA text-mode cursor position.
 finish_print:
     call clear_line
     call update_cursor
     ret
 
+; @desc Terminates the current line by clearing it and moving to the next line.
 terminate_line:
     call clear_line
     call newline
     ret
 
+; @desc Moves to the next line without clearing the old line.
+;       This procedure should only be used internally in situations where clearing the old line
+;       is most certainly not necessary (it has either been cleared before or it is completely full).
 newline:
     mov byte [xpos], 0  ; carriage return
     add byte [ypos], 1  ; line feed
@@ -127,6 +132,7 @@ newline:
 newline_done:
     ret
 
+; @desc Clears the current line by overwriting the rest of it with spaces.
 clear_line:
     call get_cur_pos
 
@@ -142,6 +148,7 @@ clear_line_inner:
     loop clear_line_inner
     ret
 
+; @desc Clears the whole text-mode screen by filling the whole buffer with spaces.
 clear_screen:
     mov byte [xpos], 0
     mov byte [ypos], 0
