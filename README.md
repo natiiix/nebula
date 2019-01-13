@@ -2,7 +2,6 @@
 
 ## Known issues
 
-- String print procedure `print_str` is missing multi-line string support (break line on line feed character).
 - Most `newline` calls should be replaced with `terminate_line` calls to ensure the rest of the old line will be cleared.
 
 ## Used foreign code
