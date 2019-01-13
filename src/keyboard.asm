@@ -32,6 +32,9 @@ keyhandler:
     popa                ; restore all registers from stack
     iret
 
+; @desc Decides which scancode-to-ASCII table should be used based on the state of shift keys.
+; @out  ESI Memory address of the scancode-to-ASCII table, which should be currently used.
+; @reg  EBX
 get_keytab:
     movzx ebx, byte [keystate + 0x2A]   ; get state of left shift key
 
