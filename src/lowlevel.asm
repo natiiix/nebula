@@ -1,3 +1,5 @@
+; @desc Halts the CPU in an infinite loop.
+; @post CPU remains halted until the host device is rebooted.
 hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
