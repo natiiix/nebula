@@ -166,7 +166,9 @@ clear_screen_inner:
     loop clear_line_inner   ; clear screen character by character
     ret
 
-get_cur_pos:            ; get absolute cursor position (buffer index) and put it into DI
+; @desc Determines the absolute text-mode cursor position (VGA text-mode buffer index).
+; @out  EDI Current cursor position / buffer index.
+get_cur_pos:
     movzx eax, byte [ypos]
     mov edx, COLUMNS * 2    ; 160 bytes per line (80 columns, 2 bytes per column / character)
     mul edx             ; multiply Y position by number of bytes per line
@@ -179,7 +181,8 @@ get_cur_pos:            ; get absolute cursor position (buffer index) and put it
 
     ret
 
-update_cursor:          ; update VGA cursor position
+; @desc Updates the position of the VGA text-mode cursor.
+update_cursor:
     movzx eax, byte [ypos]  ; get cursor Y position
     mov ebx, COLUMNS    ; screen width (presumably 80)
     mul ebx             ; multiply it by screen width
