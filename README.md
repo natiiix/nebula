@@ -25,6 +25,7 @@
 - Each part of description parameters should be 4-space aligned to improve readability.
 - Sentences should be terminated with a period, even if a description consists of just a single sentence.
 - It is possible to use `@in` and `@out` with labels referring to variables in memory in place of registers, but it may be worth considering to use `@pre` and `@post` in such situations instead.
+- Output registers mentioned in `@out` do not have to be mentioned again in `@reg` as modified registers to avoid redundance.
 
 ```nasm
 ; @desc Procedure description.
