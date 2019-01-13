@@ -1,6 +1,9 @@
-; flag used to print keyboard scancodes
+; flag used to print keyboard scan codes
 ; %define PRINT_SCANCODE
 
+; @desc Handles a keyboard event (key press / release) in the form of a scan code.
+;       This procedure is called asynchronously as an interrupt routine.
+; @post Keyboard scan code is added to the end of the keyboard event buffer.
 keyhandler:
     pusha               ; push all registers onto stack
 
