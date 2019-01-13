@@ -1,4 +1,4 @@
-_idt:
+idt_start:
     times 0x21 dq 0
 
     dw keyhandler
@@ -11,4 +11,4 @@ _idt:
 
 idt_desc:
     dw (0x100 * 8) - 1  ; limit
-    dd _idt             ; base
+    dd idt_start        ; base
