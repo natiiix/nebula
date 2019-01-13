@@ -8,6 +8,8 @@
 ; line feed character
 %define LF 10
 
+; @desc Prints a single character to the screen.
+; @in   AL  Character to be printed.
 print_char:
     cmp al, LF          ; if character is line feed
     je terminate_line   ; print nothing to screen, but move to new line
@@ -30,6 +32,8 @@ print_char_newline:
 print_char_done:
     ret
 
+; @desc Prints a string of characters terminated by a null character.
+; @in   ESI Memory address of the beginning of the string to be printed.
 print_str:              ; print string
     call get_cur_pos    ; get initial cusror index
     mov ah, 0x0F        ; attribute byte - white on black
@@ -56,18 +60,29 @@ print_newline:
 
     jmp print_loop
 
-print8:                 ; print 8-bit value in AL
+; @desc Prints 8-bit value in hexadecimal form.
+; @in   AL  Value to be printed.
+print8:
     mov ecx, 2
     jmp printhex
 
-print16:                ; print 16-bit value in AX
+; @desc Prints 16-bit value in hexadecimal form.
+; @in   AX  Value to be printed.
+print16:
     mov ecx, 4
     jmp printhex
 
-print32:                ; print 32-bit value in EAX
+; @desc Prints 32-bit value in hexadecimal form.
+; @in   EAX Value to be printed.
+print32:
     mov ecx, 8
     jmp printhex
 
+; @desc Internal procedure used for printing hexadecimal values.
+;       It should never be called directly.
+;       There are dedicated procedures for each value size (8, 16, 32-bit).
+; @in   EAX Value to be printed.
+; @in   ECX Number of least significant hexadecimal digits to print.
 printhex:
     mov esi, hextab     ; copy hex table base address into source register
 
