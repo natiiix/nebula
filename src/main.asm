@@ -14,6 +14,23 @@
 %include "init16.asm"
 %include "init32.asm"
 
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN asdf
+    PRINTLN hello
+    PRINTLN hello
+    PRINTLN hello
+
     jmp key_loop        ; jump to infinite synchronous key handling loop
 
 %include "lowlevel.asm"
@@ -32,5 +49,8 @@ msg     db "Hello World!", 0
 
 %include "data/gdt.asm"
 %include "data/idt.asm"
+
+asdf db "asdljskldjsakldjaskljdklasdjlksajdlkajdkslajdlksajdlaskjdlaskdjaslkdjjasldkjasdlkjsadlksajdlkasjdlaskjdslkjdalkjdaslkjdaslkdjaslkdjsalkdjasldkjaslkdjsaldkjsaldkjasldkjasdlkjsaaklsjdlsakjdlaskjdaslkdjasljdaskdjasldkjsalkdjasldkjsdlkjsaldkajdlksajdlkasjdlksajdlkasjdlkasdjslkadjalskdjlkasjdlksajdlksjdklasjdklsajdlkasjdlkasjdlksajdlkasj", 0
+hello db "Hello", 10, "World", LF, "LOLOLO", LF, "OMEGALUL", 0
 
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
