@@ -4,7 +4,11 @@ hang:
     hlt                 ; halt CPU
     jmp hang            ; infinite hang loop
 
-fill_segments:          ; fill all segment registers (except for CS) with value from EAX
+; @desc Sets all segment registers, except for CS (Code Segment), to the value of EAX.
+; @in   EAX Value to set the segment registers to.
+; @reg  SS, DS, ES, FS, GS
+; @post Specified segment registers will be set to the value of EAX.
+fill_segments:
     mov ss, eax
     mov ds, eax
     mov es, eax
