@@ -40,7 +40,7 @@ print_loop:
     cmp al, 0           ; check for null string termination character
     je print_done       ; break loop at null character
 
-    call print_char_inner     ; print single character
+    call print_char_inner   ; print single character
     jmp print_loop      ; string printing loop
 
 print_done:
