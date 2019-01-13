@@ -14,23 +14,6 @@
 %include "init16.asm"
 %include "init32.asm"
 
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN asdf
-    PRINTLN hello
-    PRINTLN hello
-    PRINTLN hello
-
     jmp key_loop        ; jump to infinite synchronous key handling loop
 
 %include "lowlevel.asm"
