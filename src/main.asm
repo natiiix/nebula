@@ -33,7 +33,4 @@ msg     db "Hello World!", 0
 %include "data/gdt.asm"
 %include "data/idt.asm"
 
-asdf db "asdljskldjsakldjaskljdklasdjlksajdlkajdkslajdlksajdlaskjdlaskdjaslkdjjasldkjasdlkjsadlksajdlkasjdlaskjdslkjdalkjdaslkjdaslkdjaslkdjsalkdjasldkjaslkdjsaldkjsaldkjasldkjasdlkjsaaklsjdlsakjdlaskjdaslkdjasljdaskdjasldkjsalkdjasldkjsdlkjsaldkajdlksajdlkasjdlksajdlkasjdlkasdjslkadjalskdjlkasjdlksajdlksjdklasjdklsajdlkasjdlkasjdlksajdlkasj", 0
-hello db "Hello", 10, "World", LF, "LOLOLO", LF, "OMEGALUL", 0
-
 times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
