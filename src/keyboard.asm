@@ -53,6 +53,7 @@ get_keytab_shift:
     mov esi, keytab_shift   ; return shifted conversion table
     ret
 
+; @desc Synchronously read scan codes from keyboard buffer and handle them in an infinite loop.
 key_loop:
     call key_get        ; get scan code from key buffer
 
