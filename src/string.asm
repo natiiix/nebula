@@ -5,7 +5,7 @@ strlen:
     mov ecx, 0          ; set string length counter to zero
 
 strlen_loop:
-    cmp byte [esi + ecx], 0   ; check for terminating null character
+    cmp byte [esi + ecx], 0 ; check for terminating null character
     je strlen_done
 
     inc ecx             ; increment string length counter / character index
@@ -18,19 +18,23 @@ strlen_done:
 ; @in   ESI Memory address of first string.
 ; @in   EDI Memory address of second string.
 ; @out  EAX Value indicating string equality (1 = equal; 0 = not equal).
-; @reg  ESI, EDI
-; @post Registers ESI and EDI will point to the last checked character.
+; @out  ECX Index of character at which strings mismatch or length of strings if they are equal.
 strcmp:
-    cmpsb               ; compare [ESI] to [EDI]
-    jne strcmp_not_equal
+    cmp esi, edi        ; compare memory address of first string to memory address of second string
+    je strcmp_equal     ; if memory addresses are equal there is no need to check any characters
 
-    cmp byte [esi], 0   ; check for terminating null character
+    mov ecx, 0          ; set character index to zero
+
+strcmp_loop:
+    mov al, byte [esi + ecx]    ; read character from first string
+    cmp al, byte [edi + ecx]    ; compare character from first string to character from second string
+    jne strcmp_not_equal    ; stop if string differ in any character
+
+    cmp al, 0           ; check for terminating null character
     je strcmp_equal     ; null character in both strings at once means they are equal
 
-    inc esi             ; move to next character in first string
-    inc edi             ; move to next character in second string
-
-    jmp strcmp          ; loop until difference is found or null character is encountered in both strings at once
+    inc ecx             ; increment character index (move to next character in both strings)
+    jmp strcmp_loop     ; loop until difference is found or null character is encountered in both strings at once
 
 strcmp_equal:
     mov eax, 1
