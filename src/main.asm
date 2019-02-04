@@ -14,6 +14,7 @@
 %include "init16.asm"
 %include "init32.asm"
 
+    PRINTLN welcomemsg  ; print welcome message
     jmp shell_start     ; jump to Shell code (infinite loop)
 
 %include "lowlevel.asm"
@@ -31,7 +32,7 @@
 %include "data/keyboard.asm"
 %include "data/shell.asm"
 
-msg     db "Hello World!", 0
+welcomemsg  db "Welcome to Nebula!", LF, "Source code: https://github.com/natiiix/nebula", 0
 
 %include "data/gdt.asm"
 %include "data/idt.asm"

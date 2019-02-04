@@ -10,17 +10,6 @@ init32:
     mov ebp, 0x90000
     mov esp, ebp        ; set 32-bit stack pointer
 
-    PRINTLN msg         ; print string
-
-    mov eax, 0x1234ABCD ; move test value to EAX
-    call print16        ; print value in EAX
-
-    mov eax, CODE_SEG
-    call print32
-
-    mov eax, DATA_SEG
-    call print32
-
     ; ICW1 - begin initialization
     mov al, 0x11
     out 0x20, al
