@@ -7,7 +7,7 @@ cmdprompt   db ">", 0
 
 ; help command data
 cmdhelp     db "help", 0
-helpstr     db "This is a placeholder help message.", LF, "And this is its second line.", LF, "This line right here." 0
+helpstr     db "This is a placeholder help message.", LF, "And this is its second line.", LF, "This line right here.", 0
 
 ; invalid command data
 invalidcmd  db "Invalid command: ", 0
