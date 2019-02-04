@@ -20,7 +20,7 @@
 
 %include "print.asm"
 %include "keyboard.asm"
-
+%include "string.asm"
 %include "shell.asm"
 
 ; ============================================
@@ -29,7 +29,6 @@
 
 %include "data/print.asm"
 %include "data/keyboard.asm"
-
 %include "data/shell.asm"
 
 msg     db "Hello World!", 0
