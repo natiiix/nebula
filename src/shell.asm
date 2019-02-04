@@ -1,3 +1,4 @@
+; @desc Main Shell label. Prints command prompt string and continues to the infinite key handling loop.
 shell_start:
     PRINT cmdprompt
 
@@ -16,6 +17,9 @@ key_loop:
 
     cmp eax, 0x1C       ; enter key pressed
     je exec_cmd
+
+    cmp eax, 0x0E       ; backspace key pressed
+    je key_loop_backspace
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
                         ; release scan codes have bit 7 enabled,
@@ -50,6 +54,24 @@ key_loop:
     call newline        ; terminate line
 %endif
 
+    call finish_print   ; perform after-print procedures
+
+    jmp key_loop
+
+key_loop_backspace:
+    movzx ecx, byte [cmdbuff_idx]   ; get command buffer index
+
+    cmp ecx, 0          ; do nothing if command buffer is empty
+    je key_loop
+
+    mov edi, cmdbuff    ; get command buffer base address
+
+    dec ecx             ; decrement command buffer index (move to previous character)
+    mov [cmdbuff_idx], cl   ; update command buffer index
+
+    mov byte [edi + ecx], ' '   ; replace last character with space character
+
+    call undo_char      ; undo last character
     call finish_print   ; perform after-print procedures
 
     jmp key_loop

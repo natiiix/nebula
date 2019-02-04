@@ -32,6 +32,39 @@ print_char_newline:
 print_char_done:
     ret
 
+; @desc Replaces last character with spaces a moves cursor one character back.
+; @reg  AX
+undo_char:
+    cmp byte [xpos], 0  ; if cursor X position is 0
+    je undo_char_first_col
+
+    dec byte [xpos]     ; otherwise decrement cursor X position
+
+    jmp undo_char_print
+
+undo_char_first_col:
+    mov byte [xpos], COLUMNS - 1    ; set cursor X position to last column
+
+    cmp byte [ypos], 0  ; if cursor Y position is 0
+    je undo_char_first_row
+
+    dec byte [ypos]     ; otherwise decrement cursor Y position
+
+    jmp undo_char_print
+
+undo_char_first_row:
+    mov byte [ypos], ROWS - 1   ; set cursor Y position to last row
+
+    jmp undo_char_print
+
+undo_char_print:
+    call get_cur_pos    ; get current cursor index
+    mov ah, 0x0F        ; attribute byte - white on black
+    mov byte al, ' '    ; set character to space
+    stosw               ; replace character with space
+
+    ret
+
 ; @desc Prints a string of characters terminated by a null character.
 ; @in   ESI Memory address of the beginning of the string to be printed.
 print_str:              ; print string
