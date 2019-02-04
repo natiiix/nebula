@@ -30,6 +30,8 @@
 %include "data/print.asm"
 %include "data/keyboard.asm"
 
+%include "data/shell.asm"
+
 msg     db "Hello World!", 0
 
 %include "data/gdt.asm"
