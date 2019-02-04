@@ -1,3 +1,7 @@
+; key press scan codes.
+%define ENTER       0x1C
+%define BACKSPACE   0x0E
+
 ; @desc Main Shell label. Prints command prompt string and continues to the infinite key handling loop.
 shell_start:
     PRINT cmdprompt
@@ -15,10 +19,10 @@ key_loop:
     pop eax             ; restore scan code from stack
 %endif
 
-    cmp eax, 0x1C       ; enter key pressed
+    cmp eax, ENTER      ; enter key pressed
     je exec_cmd
 
-    cmp eax, 0x0E       ; backspace key pressed
+    cmp eax, BACKSPACE  ; backspace key pressed
     je key_loop_backspace
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
