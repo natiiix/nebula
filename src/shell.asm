@@ -1,3 +1,6 @@
+shell_start:
+    PRINT cmdprompt
+
 ; @desc Synchronously read scan codes from keyboard buffer and handle them in an infinite loop.
 key_loop:
     call key_get        ; get scan code from key buffer
@@ -12,7 +15,7 @@ key_loop:
 %endif
 
     cmp eax, 0x1C       ; enter key pressed
-    je key_enter
+    je exec_cmd
 
     cmp eax, 0x40       ; 0x40 and all higher scan codes have no printable character
                         ; release scan codes have bit 7 enabled,
@@ -52,11 +55,11 @@ key_loop:
     jmp key_loop
 
 ; @desc This code is executed if enter key has been pressed.
-key_enter:
+exec_cmd:
     call newline
     PRINTLN cmdbuff
 
     mov byte [cmdbuff_idx], 0
     mov byte [cmdbuff], 0
 
-    jmp key_loop
+    jmp shell_start

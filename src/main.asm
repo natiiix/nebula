@@ -14,7 +14,7 @@
 %include "init16.asm"
 %include "init32.asm"
 
-    jmp key_loop        ; jump to infinite synchronous key handling loop
+    jmp shell_start     ; jump to Shell code (infinite loop)
 
 %include "lowlevel.asm"
 
