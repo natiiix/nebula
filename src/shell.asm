@@ -82,10 +82,26 @@ key_loop_backspace:
 
 ; @desc This code is executed if enter key has been pressed.
 exec_cmd:
-    call newline
+    call newline        ; move to next line (no need to terminate, line is already cleared)
+
+    mov esi, cmdbuff
+    mov edi, cmdhelp
+
+    call strcmp
+    cmp eax, 1          ; if command buffer is equal to help command string
+    je cmd_help
+
+    PRINT invalidcmd    ; otherwise print error message and echo entered command
     PRINTLN cmdbuff
 
-    mov byte [cmdbuff_idx], 0
-    mov byte [cmdbuff], 0
+    jmp exec_cmd_finish
+
+cmd_help:
+    PRINTLN helpstr     ; print help string
+    ; jmp exec_cmd_finish
+
+exec_cmd_finish:
+    mov byte [cmdbuff_idx], 0   ; set command buffer index to 0
+    mov byte [cmdbuff], 0       ; set first character in command buffer to NULL character
 
     jmp shell_start
