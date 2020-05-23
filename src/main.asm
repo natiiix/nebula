@@ -1,23 +1,29 @@
-%macro PRINT 1
-    mov esi, %1
-    call print_str
-    call finish_print
-%endmacro
+; Set stack top at 16MiB address.
+; This should be enough stack space for now.
+STACK_TOP equ 1 << 24
 
-%macro PRINTLN 1
-    mov esi, %1
-    call print_str
-    call terminate_line
-    call finish_print
-%endmacro
+%include "print_macros.asm"
 
-%include "init16.asm"
-%include "init32.asm"
+SECTION .text
+
+; Entry point of the entire kernel.
+global _start
+_start:
+    jmp load_gdt
+
+gdt_loaded:
+    mov esp, STACK_TOP  ; set stack pointer to predefined top address
+    cld                 ; lowest-to-highest direction of bytes in string
 
     PRINTLN welcomemsg  ; print welcome message
-    jmp shell_start     ; jump to Shell code (infinite loop)
+    call load_idt       ; load IDT to enable keyboard event handler
 
-%include "lowlevel.asm"
+    jmp shell_start     ; jump to shell code (infinite loop, no need for halt)
+
+%include "multiboot.asm"
+
+%include "load_gdt.asm"
+%include "load_idt.asm"
 
 %include "print.asm"
 %include "keyboard.asm"
@@ -28,13 +34,12 @@
 ; ================    DATA    ================
 ; ============================================
 
+%include "data/gdt.asm"
+%include "data/idt.asm"
 %include "data/print.asm"
 %include "data/keyboard.asm"
 %include "data/shell.asm"
 
+SECTION .rodata
+
 welcomemsg  db "Welcome to Nebula!", LF, "Source code: https://github.com/natiiix/nebula", 0
-
-%include "data/gdt.asm"
-%include "data/idt.asm"
-
-times IMAGE_SIZE-($-$$) db 0    ; pad with zeroes to fill IMAGE_SIZE
