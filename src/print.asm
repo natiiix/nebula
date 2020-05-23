@@ -121,7 +121,7 @@ print32:
 printhex:
     mov esi, hextab     ; copy hex table base address into source register
 
-    mov ebx, hexstr + 8 ; get end address of output hex string
+    mov ebx, hexstr_end ; get end address of output hex string
     mov edi, ebx        ; copy end address to destination register
     sub ebx, ecx        ; subtract number of digits from end address to get beginning address
     mov dword [hexaddr], ebx    ; store beginning address in memory for later printing
@@ -233,14 +233,12 @@ update_cursor:
     mov al, bl
     out dx, al          ; send low byte
 
-    shr bx, 8           ; shift BX by 1 byte to right (get high byte)
-
     mov dx, 0x3D4
     mov al, 0x0E
     out dx, al          ; tell VGA to expect cursor high byte
 
     mov dx, 0x3D5
-    mov al, bl
+    mov al, bh
     out dx, al          ; send high byte
 
     ret
