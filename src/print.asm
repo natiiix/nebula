@@ -1,3 +1,5 @@
+SECTION .text
+
 ; screen width (80 columns / characters)
 %define COLUMNS 80
 ; screen height (25 rows / lines)
@@ -225,20 +227,20 @@ update_cursor:
 
     mov dx, 0x3D4
     mov al, 0x0F
-	out dx, al          ; tell VGA to expect cursor low byte
+    out dx, al          ; tell VGA to expect cursor low byte
 
     mov dx, 0x3D5
     mov al, bl
-	out dx, al          ; send low byte
+    out dx, al          ; send low byte
 
     shr bx, 8           ; shift BX by 1 byte to right (get high byte)
 
     mov dx, 0x3D4
     mov al, 0x0E
-	out dx, al          ; tell VGA to expect cursor high byte
+    out dx, al          ; tell VGA to expect cursor high byte
 
     mov dx, 0x3D5
     mov al, bl
-	out dx, al          ; send high byte
+    out dx, al          ; send high byte
 
     ret

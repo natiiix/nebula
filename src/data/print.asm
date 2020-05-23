@@ -1,3 +1,5 @@
+SECTION .data
+
 ; VGA cursor position
 xpos    db 0
 ypos    db 0
