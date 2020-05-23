@@ -1,14 +1,7 @@
-[BITS 32]               ; 32-bit instructions
+SECTION .text
 
-init32:
+load_idt:
     cli                 ; disable interrupts (during initialization)
-    cld                 ; lowest-to-highest byte string direction
-
-    mov eax, DATA_SEG
-    call fill_segments  ; set up segment registers
-
-    mov ebp, 0x90000
-    mov esp, ebp        ; set 32-bit stack pointer
 
     ; ICW1 - begin initialization
     mov al, 0x11
@@ -40,6 +33,13 @@ init32:
     out 0x21, al
     out 0xA1, al
 
+    ; The 32-bit address of the event handler routine must be split
+    ; into low and high 16-bit parts to fit the IDT entry structure.
+    mov eax, keyhandler
+    mov word [idt_key_low], ax
+    shr eax, 16
+    mov word [idt_key_high], ax
+
     lidt [idt_desc]     ; load IDT descriptor
 
     ; 0xFD is 11111101 - enables only IRQ1 (keyboard)
@@ -47,3 +47,4 @@ init32:
     out 0x21, al
 
     sti
+    ret
