@@ -10,6 +10,6 @@ keystate times 0x80 db 0x80
 SECTION .rodata
 
 ; conversion table from keyboard key scan code to ASCII (with shift key released)
-keytab          db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\zxcvbnm,./', 0, '*', 0, ' '
+keytab          db 0, 0, '1234567890-=', 0, 0, 'qwertyuiop[]', LF, 0, "asdfghjkl;'`", 0, '\zxcvbnm,./', 0, '*', 0, SPACE
 ; shifted conversion table from scan code to ASCII (when shift key is held down)
-keytab_shift    db 0, 0, '!@#$%^&*()_+', 0, 0, 'QWERTYUIOP{}', 0,  0, 'ASDFGHJKL:"~', 0, '|ZXCVBNM<>?', 0, 0,   0, ' '
+keytab_shift    db 0, 0, '!@#$%^&*()_+', 0, 0, 'QWERTYUIOP{}', 0,  0, 'ASDFGHJKL:"~', 0, '|ZXCVBNM<>?', 0, 0,   0, SPACE

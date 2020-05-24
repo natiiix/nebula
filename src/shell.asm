@@ -75,7 +75,7 @@ key_loop_backspace:
     dec ecx             ; decrement command buffer index (move to previous character)
     mov [cmdbuff_idx], cl   ; update command buffer index
 
-    mov byte [edi + ecx], ' '   ; replace last character with space character
+    mov byte [edi + ecx], SPACE ; replace last character with space character
 
     call undo_char      ; undo last character
     call finish_print   ; perform after-print procedures
