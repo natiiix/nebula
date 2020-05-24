@@ -15,6 +15,8 @@ gdt_loaded:
     mov esp, STACK_TOP  ; set stack pointer to predefined top address
     cld                 ; lowest-to-highest direction of bytes in string
 
+    call enable_cursor  ; VGA text-mode cursor is disabled when GRUB menu is disabled (timeout=0)
+
     PRINTLN welcomemsg  ; print welcome message
     call load_idt       ; load IDT to enable keyboard event handler
 
