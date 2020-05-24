@@ -59,7 +59,7 @@ print_char_inner:       ; print single character
 
     inc byte [xpos]     ; advance to right
     cmp byte [xpos], COLUMNS    ; check if the X position beyond the last column (outside of the screen)
-    jne print_char_done ; if the current row/line is not full yet
+    jne .print_char_done ; if the current row/line is not full yet
 
     call newline        ; if the line is already full, move to next line
 
