@@ -1,3 +1,5 @@
+SECTION .text
+
 ; @desc Determines the length of a string.
 ; @in   ESI Memory address of the string to evaluate.
 ; @out  ECX Length of evaluated string.

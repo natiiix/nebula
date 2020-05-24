@@ -1,12 +1,41 @@
-; screen width (80 columns / characters)
-%define COLUMNS 80
-; screen height (25 rows / lines)
-%define ROWS 25
-; VGA text buffer base address
-%define TEXT_BUFFER 0xB8000
+SECTION .text
 
-; line feed character
-%define LF 10
+; screen width (80 columns / characters)
+COLUMNS equ 80
+; screen height (25 rows / lines)
+ROWS    equ 25
+
+; VGA text buffer base address
+TEXT_BUFFER equ 0xB8000
+
+; line feed character (\n)
+LF      equ 10
+; space character (also used for clearing screen)
+SPACE   equ ' '
+
+PORT_CURSOR_CONTROL equ 0x3D4
+PORT_CURSOR_DATA    equ 0x3D5
+
+; Low byte of the cursor position.
+CMD_CURSOR_POS_LOW      equ 0x0F
+; High byte of the cursor position.
+CMD_CURSOR_POS_HIGH     equ 0x0E
+; Start scanline of the cursor - top of the cursor.
+CMD_CURSOR_SIZE_START   equ 0x0A
+; End scanline of the cursor - bottom of the cursor.
+CMD_CURSOR_SIZE_END     equ 0x0B
+
+; Mask used when setting cursor start position/scanline.
+MASK_CURSOR_START   equ 0xC0
+; Mask used when setting cursor end position/scanline.
+MASK_CURSOR_END     equ 0xE0
+
+; Position of start/top of cursor (0x00 = top-most scanline).
+CURSOR_START    equ 0x0B
+; Position of end/bottom of cursor (0x0F = bottom-most scanline).
+CURSOR_END      equ 0x0D
+
+COLOR_WHITE_ON_BLACK equ 0x0F
 
 ; @desc Prints a single character to the screen.
 ; @in   AL  Character to be printed.
@@ -16,7 +45,7 @@ print_char:
 
     mov cl, al          ; move character to temporary register
     call get_cur_pos    ; get current cursor index
-    mov ah, 0x0F        ; attribute byte - white on black
+    mov ah, COLOR_WHITE_ON_BLACK    ; attribute byte - white on black
     mov al, cl          ; restore character from temporary register
 
 print_char_inner:       ; print single character
@@ -59,8 +88,8 @@ undo_char_first_row:
 
 undo_char_print:
     call get_cur_pos    ; get current cursor index
-    mov ah, 0x0F        ; attribute byte - white on black
-    mov byte al, ' '    ; set character to space
+    mov ah, COLOR_WHITE_ON_BLACK    ; attribute byte - white on black
+    mov byte al, SPACE  ; set character to space
     stosw               ; replace character with space
 
     ret
@@ -69,7 +98,7 @@ undo_char_print:
 ; @in   ESI Memory address of the beginning of the string to be printed.
 print_str:              ; print string
     call get_cur_pos    ; get initial cusror index
-    mov ah, 0x0F        ; attribute byte - white on black
+    mov ah, COLOR_WHITE_ON_BLACK    ; attribute byte - white on black
 
 print_loop:
     lodsb               ; load next string character / byte
@@ -119,7 +148,7 @@ print32:
 printhex:
     mov esi, hextab     ; copy hex table base address into source register
 
-    mov ebx, hexstr + 8 ; get end address of output hex string
+    mov ebx, hexstr_end ; get end address of output hex string
     mov edi, ebx        ; copy end address to destination register
     sub ebx, ecx        ; subtract number of digits from end address to get beginning address
     mov dword [hexaddr], ebx    ; store beginning address in memory for later printing
@@ -173,8 +202,8 @@ clear_line:
     movzx eax, byte [xpos]
     sub ecx, eax        ; calculate trailing empty columns on current line
 
-    mov ah, 0x0F        ; black foreground on black background
-    mov al, 0x20        ; space character
+    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
+    mov al, SPACE       ; space character
 
 clear_line_inner:
     stosw
@@ -191,8 +220,8 @@ clear_screen:
     mov ecx, COLUMNS * ROWS ; number of characters on screen
     mov edi, TEXT_BUFFER    ; VGA text buffer base address
 
-    mov ah, 0x0F        ; black foreground on black background
-    mov al, 0x20        ; space character
+    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
+    mov al, SPACE       ; space character
 
 clear_screen_inner:
     stosw
@@ -223,22 +252,46 @@ update_cursor:
     movzx ebx, byte [xpos]  ; get cursor X position
     add ebx, eax        ; absolute cursor position (Y * width + X) is now in BX
 
-    mov dx, 0x3D4
-    mov al, 0x0F
-	out dx, al          ; tell VGA to expect cursor low byte
+    mov dx, PORT_CURSOR_CONTROL
+    mov al, CMD_CURSOR_POS_LOW
+    out dx, al          ; tell VGA to expect cursor low byte
 
-    mov dx, 0x3D5
+    mov dx, PORT_CURSOR_DATA
     mov al, bl
-	out dx, al          ; send low byte
+    out dx, al          ; send low byte
 
-    shr bx, 8           ; shift BX by 1 byte to right (get high byte)
+    mov dx, PORT_CURSOR_CONTROL
+    mov al, CMD_CURSOR_POS_HIGH
+    out dx, al          ; tell VGA to expect cursor high byte
 
-    mov dx, 0x3D4
-    mov al, 0x0E
-	out dx, al          ; tell VGA to expect cursor high byte
+    mov dx, PORT_CURSOR_DATA
+    mov al, bh
+    out dx, al          ; send high byte
 
-    mov dx, 0x3D5
-    mov al, bl
-	out dx, al          ; send high byte
+    ret
+
+; @desc Enables the VGA text-mode cursor.
+;       Based on C code from https://wiki.osdev.org/Text_Mode_Cursor#Enabling_the_Cursor_2
+; @reg  AL, DX
+enable_cursor:
+    mov dx, PORT_CURSOR_CONTROL
+    mov al, CMD_CURSOR_SIZE_START
+    out dx, al
+
+    mov dx, PORT_CURSOR_DATA
+    in al, dx
+    and al, MASK_CURSOR_START
+    or al, CURSOR_START
+    out dx, al
+
+    mov dx, PORT_CURSOR_CONTROL
+    mov al, CMD_CURSOR_SIZE_END
+    out dx, al
+
+    mov dx, PORT_CURSOR_DATA
+    in al, dx
+    and al, MASK_CURSOR_END
+    or al, CURSOR_END
+    out dx, al
 
     ret

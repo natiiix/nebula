@@ -1,3 +1,5 @@
+SECTION .text
+
 ; flag used to print keyboard scan codes
 ; %define PRINT_SCANCODE
 
