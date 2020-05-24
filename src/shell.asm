@@ -86,6 +86,9 @@ key_loop_backspace:
 exec_cmd:
     call newline        ; move to next line (no need to terminate, line is already cleared)
 
+    cmp byte [cmdbuff_idx], 0
+    je exec_cmd_finish
+
     mov esi, cmdbuff
     mov edi, cmdhelp
 
