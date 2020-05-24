@@ -5,6 +5,9 @@ COLUMNS equ 80
 ; screen height (25 rows / lines)
 ROWS    equ 25
 
+; total number of characters that can be written to the VGA text buffer
+TEXT_CHAR_COUNT equ COLUMNS * ROWS
+
 ; VGA text buffer base address
 TEXT_BUFFER equ 0xB8000
 
