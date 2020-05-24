@@ -16,6 +16,7 @@ gdt_loaded:
     cld                 ; lowest-to-highest direction of bytes in string
 
     call enable_cursor  ; VGA text-mode cursor is disabled when GRUB menu is disabled (timeout=0)
+    call clear_screen   ; clear the VGA text buffer to remove any remnants of the BIOS/bootloader in the background
 
     PRINTLN welcomemsg  ; print welcome message
     call load_idt       ; load IDT to enable keyboard event handler
