@@ -40,6 +40,9 @@ CURSOR_END      equ 0x0D
 
 COLOR_WHITE_ON_BLACK equ 0x0F
 
+; white on black space character ready to be put into the VGA text buffer
+SPACE_WORD equ (COLOR_WHITE_ON_BLACK << 8) | SPACE
+
 ; @desc Prints a single character to the screen.
 ; @in   AL  Character to be printed.
 print_char:
@@ -86,13 +89,11 @@ undo_char_first_col:
 
 undo_char_first_row:
     mov byte [ypos], ROWS - 1   ; set cursor Y position to last row
-
-    jmp undo_char_print
+    ; jmp undo_char_print
 
 undo_char_print:
     call get_cur_pos    ; get current cursor index
-    mov ah, COLOR_WHITE_ON_BLACK    ; attribute byte - white on black
-    mov byte al, SPACE  ; set character to space
+    mov ax, SPACE_WORD  ; attribute byte - white on black
     stosw               ; replace character with space
 
     ret
@@ -205,8 +206,7 @@ clear_line:
     movzx eax, byte [xpos]
     sub ecx, eax        ; calculate trailing empty columns on current line
 
-    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
-    mov al, SPACE       ; space character
+    mov ax, SPACE_WORD
 
 clear_line_inner:
     stosw
@@ -223,8 +223,7 @@ clear_screen:
     mov ecx, COLUMNS * ROWS ; number of characters on screen
     mov edi, TEXT_BUFFER    ; VGA text buffer base address
 
-    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
-    mov al, SPACE       ; space character
+    mov ax, SPACE_WORD
 
 clear_screen_inner:
     stosw
@@ -232,6 +231,7 @@ clear_screen_inner:
     ret
 
 ; @desc Determines the absolute text-mode cursor position (VGA text-mode buffer index).
+; @reg  EAX, EBX, EDX
 ; @out  EDI Current cursor position / buffer index.
 get_cur_pos:
     movzx eax, byte [ypos]
