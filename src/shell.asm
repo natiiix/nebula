@@ -86,13 +86,21 @@ key_loop_backspace:
 exec_cmd:
     call newline        ; move to next line (no need to terminate, line is already cleared)
 
+    ; Ignore empty command (pressing ENTER without typing any command).
+    ; Using the TEST instruction here would only degrade readability.
+    ; WARN: This assumes that the index remains 1 byte long!
+    cmp byte [cmdbuff_idx], 0
+    je exec_cmd_finish
+
+    ; Check for "help" command.
     mov esi, cmdbuff
     mov edi, cmdhelp
 
     call strcmp
-    cmp eax, 1          ; if command buffer is equal to help command string
-    je cmd_help
+    test eax, eax
+    jnz cmd_help        ; if command buffer is equal to help command string
 
+    ; The entered command is invalid.
     PRINT invalidcmd    ; otherwise print error message and echo entered command
     PRINTLN cmdbuff
 

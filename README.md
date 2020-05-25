@@ -17,11 +17,19 @@
 | `@pre`    | Precondition.                               |
 | `@post`   | Postcondition.                              |
 
-- Register names should be written in uppercase in documentation to make stand out.
+### Guidelines
+
+- Register names should be written in uppercase in documentation to make them stand out.
 - Each part of description parameters should be 4-space aligned to improve readability.
 - Sentences should be terminated with a period, even if a description consists of just a single sentence.
 - It is possible to use `@in` and `@out` with labels referring to variables in memory in place of registers, but it may be worth considering to use `@pre` and `@post` in such situations instead.
 - Output registers mentioned in `@out` do not have to be mentioned again in `@reg` as modified registers to avoid redundance.
+
+### Note about the `@reg` parameter
+
+The `@reg` parameter is optional because it can sometimes be very difficult to determine which registers can be modified (especially for procedures that make a lot of jumps or calls to other procedures). A missing `@reg` parameter indicates that the procedure makes absolutely no guarantees regarding the state of registers (aside from those mentioned in `@out` parameters) after returning from the procedure - any register may be modified and not returned to its initial value. Therefore, please treat such procedures as if they destroyed the content of all registers. To indicate that the procedure does not modify any registers, please add an empty `@reg` parameter (followed by no register name). The (E)FLAGS register is implicitly considered to be modified and does not have to be explicitly mentioned in the `@reg` parameter.
+
+### Example documented procedure
 
 ```nasm
 ; @desc Procedure description.

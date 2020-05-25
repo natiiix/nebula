@@ -5,6 +5,9 @@ COLUMNS equ 80
 ; screen height (25 rows / lines)
 ROWS    equ 25
 
+; total number of characters that can be written to the VGA text buffer
+TEXT_CHAR_COUNT equ COLUMNS * ROWS
+
 ; VGA text buffer base address
 TEXT_BUFFER equ 0xB8000
 
@@ -37,6 +40,9 @@ CURSOR_END      equ 0x0D
 
 COLOR_WHITE_ON_BLACK equ 0x0F
 
+; white on black space character ready to be put into the VGA text buffer
+SPACE_WORD equ (COLOR_WHITE_ON_BLACK << 8) | SPACE
+
 ; @desc Prints a single character to the screen.
 ; @in   AL  Character to be printed.
 print_char:
@@ -52,44 +58,41 @@ print_char_inner:       ; print single character
     stosw               ; write char + attribute word
 
     inc byte [xpos]     ; advance to right
-    cmp byte [xpos], COLUMNS    ; if current line is full
-    jne print_char_done
+    cmp byte [xpos], COLUMNS    ; check if the X position beyond the last column (outside of the screen)
+    jne .print_char_done ; if the current row/line is not full yet
 
-print_char_newline:
-    call newline        ; move on to next line
+    call newline        ; if the line is already full, move to next line
 
-print_char_done:
+.print_char_done:
     ret
 
 ; @desc Replaces last character with spaces a moves cursor one character back.
 ; @reg  AX
 undo_char:
     cmp byte [xpos], 0  ; if cursor X position is 0
-    je undo_char_first_col
+    je .undo_char_first_col
 
     dec byte [xpos]     ; otherwise decrement cursor X position
 
-    jmp undo_char_print
+    jmp .undo_char_print
 
-undo_char_first_col:
+.undo_char_first_col:
     mov byte [xpos], COLUMNS - 1    ; set cursor X position to last column
 
     cmp byte [ypos], 0  ; if cursor Y position is 0
-    je undo_char_first_row
+    je .undo_char_first_row
 
     dec byte [ypos]     ; otherwise decrement cursor Y position
 
-    jmp undo_char_print
+    jmp .undo_char_print
 
-undo_char_first_row:
+.undo_char_first_row:
     mov byte [ypos], ROWS - 1   ; set cursor Y position to last row
+    ; jmp .undo_char_print
 
-    jmp undo_char_print
-
-undo_char_print:
+.undo_char_print:
     call get_cur_pos    ; get current cursor index
-    mov ah, COLOR_WHITE_ON_BLACK    ; attribute byte - white on black
-    mov byte al, SPACE  ; set character to space
+    mov ax, SPACE_WORD  ; attribute byte - white on black
     stosw               ; replace character with space
 
     ret
@@ -104,18 +107,18 @@ print_loop:
     lodsb               ; load next string character / byte
 
     cmp al, 0           ; check for null string termination character
-    je print_done       ; break loop at null character
+    je .print_done      ; break loop at null character
 
     cmp al, LF          ; check for line feed character
-    je print_newline    ; terminate line at line feed character
+    je .print_newline   ; terminate line at line feed character
 
     call print_char_inner   ; print single character
     jmp print_loop      ; string printing loop
 
-print_done:
+.print_done:
     ret
 
-print_newline:
+.print_newline:
     push ax             ; push character + attribute word onto stack to preserve attribute byte
     call terminate_line ; clear rest of current line and move to next line
     pop ax              ; pop word back from stack
@@ -153,7 +156,7 @@ printhex:
     sub ebx, ecx        ; subtract number of digits from end address to get beginning address
     mov dword [hexaddr], ebx    ; store beginning address in memory for later printing
 
-hexloop:
+.hexloop:
     dec edi             ; decrement output hex string index (move one character to left)
     mov ebx, eax        ; copy value to EBX
     and ebx, 0xF        ; extract last 4 bits
@@ -161,7 +164,7 @@ hexloop:
     mov byte [edi], bl  ; copy character to output hex string
     shr eax, 4          ; shift right by 4 bits
     dec ecx             ; decrement input value 4-bit block counter
-    jnz hexloop         ; if there are more 4-bit blocks to process, keep going
+    jnz .hexloop        ; if there are more 4-bit blocks to process, keep going
 
     PRINT hexpre        ; print hex value prefix (0x)
     PRINTLN [hexaddr]   ; print output hex string
@@ -174,7 +177,7 @@ finish_print:
     call update_cursor
     ret
 
-; @desc Terminates the current line by clearing it and moving to the next line.
+; @desc Clears the old line and moves to the next one.
 terminate_line:
     call clear_line
     call newline
@@ -187,11 +190,11 @@ newline:
     mov byte [xpos], 0  ; carriage return
     add byte [ypos], 1  ; line feed
 
-    cmp byte [ypos], ROWS   ; if cursor is below last line
-    jnz newline_done
+    cmp byte [ypos], ROWS   ; check if the Y position is beyond the last row
+    jnz .newline_done   ; this was not the last row yet => no need to overflow
     mov byte [ypos], 0  ; overflow back to the first line
 
-newline_done:
+.newline_done:
     ret
 
 ; @desc Clears the current line by overwriting the rest of it with spaces.
@@ -202,8 +205,7 @@ clear_line:
     movzx eax, byte [xpos]
     sub ecx, eax        ; calculate trailing empty columns on current line
 
-    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
-    mov al, SPACE       ; space character
+    mov ax, SPACE_WORD
 
 clear_line_inner:
     stosw
@@ -217,18 +219,16 @@ clear_screen:
 
     call update_cursor  ; reset cursor position to 0,0
 
-    mov ecx, COLUMNS * ROWS ; number of characters on screen
-    mov edi, TEXT_BUFFER    ; VGA text buffer base address
+    mov ecx, TEXT_CHAR_COUNT    ; number of characters in the VGA text buffer
+    mov edi, TEXT_BUFFER        ; VGA text buffer base address
 
-    mov ah, COLOR_WHITE_ON_BLACK    ; white foreground on black background
-    mov al, SPACE       ; space character
+    mov ax, SPACE_WORD
+    rep stosw               ; clear screen character by character
 
-clear_screen_inner:
-    stosw
-    loop clear_line_inner   ; clear screen character by character
     ret
 
 ; @desc Determines the absolute text-mode cursor position (VGA text-mode buffer index).
+; @reg  EAX, EBX, EDX
 ; @out  EDI Current cursor position / buffer index.
 get_cur_pos:
     movzx eax, byte [ypos]
@@ -247,7 +247,7 @@ get_cur_pos:
 update_cursor:
     movzx eax, byte [ypos]  ; get cursor Y position
     mov ebx, COLUMNS    ; screen width (presumably 80)
-    mul ebx             ; multiply it by screen width
+    mul ebx             ; multiply Y position by screen width to get the Y part of the text buffer offset
 
     movzx ebx, byte [xpos]  ; get cursor X position
     add ebx, eax        ; absolute cursor position (Y * width + X) is now in BX
