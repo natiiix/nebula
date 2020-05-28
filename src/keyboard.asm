@@ -1,5 +1,8 @@
 SECTION .text
 
+PORT_KEYBOARD_CONTROL   equ 0x60
+PORT_KEYBOARD_DATA      equ 0x61
+
 ; flag used to print keyboard scan codes
 ; %define PRINT_SCANCODE
 
@@ -7,31 +10,32 @@ SECTION .text
 ;       This procedure is called asynchronously as an interrupt routine.
 ; @post Keyboard scan code is added to the end of the keyboard event buffer.
 keyhandler:
-    pusha               ; push all registers onto stack
+    cli
+    pusha                           ; push all registers onto stack
 
-    in al, 0x60         ; read key data
-    mov bl, al          ; save it for later use
+    in al, PORT_KEYBOARD_CONTROL    ; read key data
+    mov bl, al                      ; save it for later use
 
-    in al, 0x61         ; read more key data
-    mov ah, al          ; make copy of AL in AH
-    or al, 0x80         ; disable bit 7 (set it to 1)
-    out 0x61, al        ; send it back (with bit 7 disabled)
-    mov al, ah          ; move unmodified value back to AL
-    out 0x61, al        ; send unmodified value back (with bit 7 in original state)
+    in al, PORT_KEYBOARD_DATA       ; read more key data
+    mov ah, al                      ; make copy of AL in AH
+    or al, 0x80                     ; disable bit 7 (set it to 1)
+    out PORT_KEYBOARD_DATA, al      ; send it back (with bit 7 disabled)
+    mov al, ah                      ; move unmodified value back to AL
+    out PORT_KEYBOARD_DATA, al      ; send unmodified value back (with bit 7 in original state)
 
-    mov al, 0x20        ; end-of-interrupt code
-    out 0x20, al        ; send end-of-interrupt signal
+    call eoi_master
 
-    mov edi, keybuff    ; get key buffer base address
+    mov edi, keybuff                ; get key buffer base address
     movzx eax, byte [keybuff_end]   ; get key buffer end index
-    add edi, eax        ; add index to key buffer base address
-    mov [edi], bl       ; store scan code in key buffer
+    add edi, eax                    ; add index to key buffer base address
+    mov [edi], bl                   ; store scan code in key buffer
 
-    inc eax             ; increment key buffer end index
-    mov [keybuff_end], al   ; overflow is handled automatically because index is single-byte
-                            ; and there are 256 positions in key buffer
+    inc eax                         ; increment key buffer end index
+    mov [keybuff_end], al           ; overflow is handled automatically because index is single-byte
+                                    ; and there are 256 positions in key buffer
 
-    popa                ; restore all registers from stack
+    popa                            ; restore all registers from stack
+    sti
     iret
 
 ; @desc Decides which scancode-to-ASCII table should be used based on the state of shift keys.
