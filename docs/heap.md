@@ -29,13 +29,53 @@ All other tables are always located in the first sub-block of their parent block
 which is technically true for the primary table as well,
 but the first 16 MiB block contains a lot more than just the primary table.
 
-### Two types of memory blocks
+### Types of memory blocks
 
-- data block - table entry contains the number of allocated minimal/tertiary/256-byte blocks - this value can be later used for reallocation
-- nested table block - these are split into their own 256 blocks, with the first one containing another sub-table
+#### Data block
+
+Table entry contains the number of allocated minimal/tertiary/256-byte blocks.
+This value can be later used for reallocation.
 
 When multiple data blocks are allocated at once, on any allocation table level,
 they must always form one continuous memory block within their parent block.
+
+#### Nested table block
+
+These are split into their own 256 sub-blocks.
+The first one contains another lower-level sub-table.
+
+Tertiary (256 byte) blocks can never contain a nested table due to their already small size.
+This is why allocating a large quantity of very small memory blocks (just a few bytes long) is undesirable.
+
+### Table entries
+
+Every entry in every table, regardless of its level, contains a single numeric value.
+In primary and secondary tables, this value is always a 32-bit integer.
+In the tertiary tables, it is only an 8-bit integer because the tertiary sub-blocks are only 256 bytes long
+and the table in the first sub-block needs to describe all 256 of the sub-blocks => 1 byte per table entry.
+
+The values in the table entries represent the number of 256 byte blocks necessary to perform the allocation.
+This is the allocation size divided by 256 and then rounded up.
+
+Here is the NASM implementation of the entry value calculation, assuming that the allocation size is in `EAX`.
+I believe some people may find it easier to understand than the natural language description.
+
+```nasm
+add eax, 0xFF
+shr eax, 8
+```
+
+## Allocation procedure - `malloc`
+
+**TBD**
+
+## Release/de-allocation procedure - `free`
+
+**TBD**
+
+## Reallocation procedure - `realloc`
+
+**TBD**
 
 ## Examples of allocation
 
