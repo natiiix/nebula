@@ -2,6 +2,9 @@
 ; This should be enough stack space for now.
 STACK_TOP equ 1 << 24
 
+; Structures and macros
+
+%include "struct/idt.asm"
 %include "print_macros.asm"
 
 SECTION .text
@@ -23,25 +26,26 @@ gdt_loaded:
 
     jmp shell_start     ; jump to shell code (infinite loop, no need for halt)
 
+; Data
+
 %include "multiboot.asm"
-
-%include "load_gdt.asm"
-%include "load_idt.asm"
-
-%include "print.asm"
-%include "keyboard.asm"
-%include "string.asm"
-%include "shell.asm"
-
-; ============================================
-; ================    DATA    ================
-; ============================================
 
 %include "data/gdt.asm"
 %include "data/idt.asm"
 %include "data/print.asm"
 %include "data/keyboard.asm"
 %include "data/shell.asm"
+
+; Code
+
+%include "load_gdt.asm"
+%include "load_idt.asm"
+
+%include "print.asm"
+%include "keyboard.asm"
+%include "rtc.asm"
+%include "string.asm"
+%include "shell.asm"
 
 SECTION .rodata
 
