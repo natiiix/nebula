@@ -85,13 +85,48 @@ This means that the most significant byte of all data block table entries must a
 
 **TBD**
 
+1. Determine necessary allocation size (in 256-byte/tertiary blocks).
+2. Pick a table level based on the allocation size.
+3. Find a nested table block with enough free space.
+4. Iterate over table entries to find a sufficiently large block of continuous memory space.
+5. If there is not enough continuous space available in the table, try a different table.
+6. If there is no suitable table, create a new one.
+7. If that is not possible, end with an out-of-memory error.
+
 ## Release/de-allocation procedure - `free`
 
 **TBD**
 
+```nasm
+test eax, 0x000000FF
+jnz .invalid_block_address
+
+test eax, 0x0000FF00
+jnz .free_tertiary
+
+test eax, 0x00FF0000
+jnz .free_secondary
+
+test eax, 0xFF000000
+jnz .free_primary
+
+jmp .null_error
+```
+
+1. Find the table entry specified by the block address.
+2. If the entry contains a zero, end with an error.
+3. Otherwise, clear the next N entries, where N is the entry value.
+
 ## Reallocation procedure - `realloc`
 
 **TBD**
+
+## Checking memory usage
+
+**TBD**
+
+The first entry in the primary allocation table should contain the total number
+of allocated 256-byte blocks (on the heap, excluding the first primary block).
 
 ## Examples of allocation
 
