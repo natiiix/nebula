@@ -16,6 +16,10 @@ strlen_loop:
 strlen_done:
     ret
 
+; WARN: The return value does NOT match the C stdlib counterpart.
+; TODO: Maybe it would be possible to use some native,
+;       more optimized string instructions instead.
+;       This applies to other string-related procedures as well.
 ; @desc Compares two strings and determines if they are equal.
 ; @in   ESI Memory address of first string.
 ; @in   EDI Memory address of second string.
