@@ -49,6 +49,19 @@ This is why allocating a large quantity of very small memory blocks (just a few 
 
 ### Table entries
 
+Table entries for nested table blocks contain the number of allocated sub-blocks
+(excluding the first block, which is always used by the table) in their most significant byte.
+The less significant bytes are unused and should be zeroed.
+This can be used to tell data block apart from nested table blocks.
+
+#### Determining type of sub-block based on table entry value
+
+1. If the entry value is zero, the sub-block is unused.
+2. If the entry value is 32-bit and its most significant byte is not zero, the entry definitely describes a nested table block.
+3. Otherwise, the sub-block contains raw data. See the following section for an explanation of the entry value.
+
+#### Calculation of data block table entry values
+
 Every entry in every table, regardless of its level, contains a single numeric value.
 In primary and secondary tables, this value is always a 32-bit integer.
 In the tertiary tables, it is only an 8-bit integer because the tertiary sub-blocks are only 256 bytes long
@@ -64,6 +77,9 @@ I believe some people may find it easier to understand than the natural language
 add eax, 0xFF
 shr eax, 8
 ```
+
+No 32-bit integer divided by 256 (right-shifted by 8) can ever be longer than 24 bits.
+This means that the most significant byte of all data block table entries must always be `0x00`.
 
 ## Allocation procedure - `malloc`
 
