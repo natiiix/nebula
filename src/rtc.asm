@@ -59,7 +59,7 @@ rtc_init_interrupts:
     call rtc_read   ; read status register B into AL
 
     mov bl, al
-    or bl, RTC_INTERRUPT_PERIODIC | RTC_INTERRUPT_UPDATE_ENDED
+    or bl, RTC_INTERRUPT_UPDATE_ENDED
     call rtc_write  ; write updated value with enabled interrupts back to status register B
 
     ret
@@ -76,24 +76,31 @@ rtc_handler:
     mov ah, RTC_STATUS_C
     call rtc_read
 
-    ; If the time hasn't been initialized yet.
-    test dword [time_high], ~0
-    jz .time_init
-
-    add dword [time_low], 1
-    adc dword [time_high], 0
-
+%if BENCHMARK_MODE_ENABLED
     test al, RTC_INTERRUPT_UPDATE_ENDED
-    jz .end
+    jnz .benchmark
+%endif
 
-    ; Print current time, as stored the kernel's memory.
-    call print8
+    jmp .end
 
-    mov eax, dword [time_low]
-    call print32
+    ; ; If the time hasn't been initialized yet.
+    ; test dword [time_high], ~0
+    ; jz .time_init
 
-    ; Clear the time.
-    mov dword [time_low], 0
+    ; add dword [time_low], 1
+    ; adc dword [time_high], 0
+
+    ; test al, RTC_INTERRUPT_UPDATE_ENDED
+    ; jz .end
+
+    ; ; Print current time, as stored the kernel's memory.
+    ; call print8
+
+    ; mov eax, dword [time_low]
+    ; call print32
+
+    ; ; Clear the time.
+    ; mov dword [time_low], 0
 
 .end:
     call eoi_slave
@@ -102,14 +109,17 @@ rtc_handler:
     sti
     iret
 
-.time_init:
-    test al, RTC_INTERRUPT_UPDATE_ENDED
-    jz .end
+; .time_init:
+;     test al, RTC_INTERRUPT_UPDATE_ENDED
+;     jz .end
 
-    mov dword [time_high], 1
+;     mov dword [time_high], 1
+;     jmp .end
+
+%if BENCHMARK_MODE_ENABLED
+.benchmark:
+    mov eax, 0
+    xchg eax, dword [benchmark_count]
+    call print32
     jmp .end
-
-SECTION .data
-
-time_high   dd 0
-time_low    dd 0
+%endif

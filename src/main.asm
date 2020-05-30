@@ -5,7 +5,9 @@ STACK_TOP equ 1 << 24
 ; Structures and macros
 
 %include "struct/idt.asm"
-%include "print_macros.asm"
+
+%include "macro/print.asm"
+%include "macro/benchmark.asm"
 
 SECTION .text
 
@@ -24,6 +26,13 @@ gdt_loaded:
     PRINTLN welcomemsg  ; print welcome message
     call load_idt       ; load IDT to enable keyboard event handler
 
+; If in benchmark mode, run the defined benchmark code instead of the shell loop.
+%if BENCHMARK_MODE_ENABLED
+    BENCHMARK_BEGIN
+    BENCHMARK_CODE
+    BENCHMARK_END
+%endif
+
     jmp shell_start     ; jump to shell code (infinite loop, no need for halt)
 
 ; Data
@@ -35,6 +44,7 @@ gdt_loaded:
 %include "data/print.asm"
 %include "data/keyboard.asm"
 %include "data/shell.asm"
+%include "data/benchmark.asm"
 
 ; Code
 
