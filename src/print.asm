@@ -148,6 +148,7 @@ print32:
 ;       There are dedicated procedures for each value size (8, 16, 32-bit).
 ; @in   EAX Value to be printed.
 ; @in   ECX Number of least significant hexadecimal digits to print.
+; [DISABLED] @in   EDX Raw print switch (no `0x` prefix and no line termination if not zero).
 printhex:
     mov esi, hextab     ; copy hex table base address into source register
 
@@ -166,10 +167,16 @@ printhex:
     dec ecx             ; decrement input value 4-bit block counter
     jnz .hexloop        ; if there are more 4-bit blocks to process, keep going
 
+    ; test edx, edx
+    ; jnz .rawprint
+
     PRINT hexpre        ; print hex value prefix (0x)
     PRINTLN [hexaddr]   ; print output hex string
-
     ret
+
+; .rawprint:
+;     PRINT [hexaddr]
+;     ret
 
 ; @desc Clears the current line and updates the VGA text-mode cursor position.
 finish_print:
