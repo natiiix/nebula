@@ -1,35 +1,125 @@
 SECTION .text
 
-; @in   EAX Requested memory block size.
-malloc:
-    ; Convert size to number of 256-byte blocks, rounded up.
-    ; The ADD instruction could be followed by a jump-if-carry
-    ; to handle attempts to allocate more than 0xFFFFFF00 bytes.
+; Rounded-up division by 256.
+; Used to get the number of blocks necessary for a heap allocation.
+%macro SHR8_ROUND_UP 0
     add eax, 0xFF
     shr eax, 8
+%endmacro
 
-    test eax, eax
-    jz .invalid_size
+; @in   EAX Requested memory block size.
+; @out  ESI Address of allocated memory space.
+malloc:
+    SHR8_ROUND_UP       ; divide by 256 and round up to get the number of tertiary blocks
+    ; JC could be used here to handle attempts to allocate more than 0xFFFFFF00 bytes.
+    test eax, eax       ; check if the number of tertiary blocks to allocate
+    jz .invalid_size    ; if it is zero, either 0 or more than 0xFFFFFF00 bytes have been requested
 
-    ; At this point, the value should be in the 0x00000001 - 0x00FFFFFF range.
+    ; At this point, EAX should be in the 0x00000001 - 0x00FFFFFF range.
 
-    test eax, 0x00FF0000
-    jnz .primary
+    test eax, ~0xFF ; check higher bits (above least significant byte)
+    jz .tertiary    ; zero => below 256 => requested memory size can fit into the tertiary allocation level
 
-    test eax, 0x0000FF00
-    jnz .secondary
+    SHR8_ROUND_UP   ; this makes EAX < 0x10000 => number of secondary blocks
+    test eax, ~0xFF ; requested size can fit into secondary block(s)
+    jz .secondary
 
-    jmp .tertiary
+    SHR8_ROUND_UP   ; this makes EAX < 0x100 => number of primary blocks
+    jmp .primary    ; it is necessary to allocate primary block(s)
 
 .invalid_size:
     PRINTLN err_invalid_size
     ret
 
+; @in   EAX Number of requested primary blocks.
+; @out  ESI Address of table entry of the first available block.
+; @reg  EAX, ECX, EDX
 .primary:
+    mov edx, eax                    ; EAX will be used by string instructions
+
+    ; Check if there are enough primary memory blocks.
+    ; This does not mean that there are really enough continuous blocks.
+    ; However, if this check fails, it makes no sense to continue.
+    mov eax, 0xFF                   ; total number of entries in primary table (excluding first meta-entry)
+    sub eax, dword [primary_heap_tab]   ; subtract first entry value to get number of available primary entries
+    cmp eax, edx                    ; check if the number of available entries is lower than the requested
+    jb .out_of_memory               ; there are not enough available primary blocks (regardless of continuity)
+
+    mov esi, primary_heap_tab + 4   ; second entry in primary table
+    xor ecx, ecx                    ; number of continuous unused block
+
+.primary_find_loop:
+    lodsd                           ; load table entry into EAX
+    test eax, eax                   ; check if table entry is zero
+    jz .primary_find_zero           ; if table entry is zero
+
+    ; Table entry is non-zero.
+    dec eax                         ; decrement table entry locally because LODSD has already moved ESI to the next entry
+    shl eax, 2                      ; convert table entry value into table offset (32-bit entries)
+    add esi, eax                    ; skip the already allocated entries
+
+.primary_find_loop_end:
+    cmp esi, primary_heap_tab_end   ; check if ESI is outside of the primary table
+    jae .out_of_memory              ; there are not enough continuous memory blocks for the requested allocation
+
+    jmp .primary_find_loop
+
+.primary_find_zero:                 ; primary table entry is zero
+    inc ecx                         ; increment counter of continuous available memory blocks
+    cmp ecx, edx                    ; check if enough continuous memory blocks were found
+    jb .primary_find_loop_end       ; not enough blocks yet
+
+    ; Success - sufficiently long continuous memory block was found.
+    shl ecx, 2                      ; multiply by 4 (offset into the table with 32-bit entries).
+    sub esi, ecx                    ; get base address of found memory block
+
+    mov dword [esi], edx            ; store the number of allocated blocks into the entry
+    add dword [primary_heap_tab], edx   ; add to the total number of allocated primary blocks
+
+    sub esi, primary_heap_tab       ; get first allocated table entry offset
+    shl esi, 24 - 2                 ; get address of allocated primary memory block
+                                    ; (-2 because entries are 32-bit, so the offset is a multiple of 4)
     ret
 
 .secondary:
+    ; Find secondary table.
+    ;   - Create a new secondary table.
+    ;       - Clear the table.
+    ;       - Write number of allocated blocks into the second entry.
+    ;       - Copy the value into the first entry (the rest of the table is definitely empty).
+    ;       - Propagate the value into the primary table.
+    ;   - Suitable table found (judged based on the most significant byte of entry in primary table).
+    ;       - Find continuous space for allocation (similar to the process in primary table).
+    ;           - Found.
+    ;               - Set table entry value to block count.
+    ;               - Add block count to first table entry.
+    ;               - Propagate value into primary table.
+    ;           - Not found.
+    ;               - Find a different secondary table.
+    mov esi, 0
     ret
 
 .tertiary:
+    ; Similar to secondary block allocation, but with an extra level.
+    mov esi, 0
     ret
+
+.out_of_memory:
+    PRINTLN err_out_of_memory
+    mov esi, 0  ; return NULL pointer
+    ret
+
+%macro CLEAR_4BYTE 1
+    mov ecx, %1
+    mov eax, 0
+    rep stosd
+    ret
+%endmacro
+
+; @in   EDI Address of secondary table.
+clear_secondary_table:
+    CLEAR_4BYTE 0x100
+
+; @in   EDI Address of tertiary table.
+clear_tertiary_table:
+    CLEAR_4BYTE 0x40
