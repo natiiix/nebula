@@ -26,6 +26,24 @@ gdt_loaded:
     PRINTLN welcomemsg  ; print welcome message
     call load_idt       ; load IDT to enable keyboard event handler
 
+    mov eax, primary_heap_tab
+    call print32
+
+    mov eax, 0x02000001
+    call malloc
+    mov eax, esi
+    call print32
+    mov eax, dword [primary_heap_tab]
+    call print32
+    mov eax, dword [primary_heap_tab + 4]
+    call print32
+    mov eax, dword [primary_heap_tab + 8]
+    call print32
+    mov eax, dword [primary_heap_tab + 12]
+    call print32
+    mov eax, dword [primary_heap_tab + 16]
+    call print32
+
 ; If in benchmark mode, run the defined benchmark code instead of the shell loop.
 %if BENCHMARK_MODE_ENABLED
     BENCHMARK_BEGIN
@@ -42,6 +60,7 @@ gdt_loaded:
 %include "data/gdt.asm"
 %include "data/idt.asm"
 %include "data/print.asm"
+%include "data/heap.asm"
 %include "data/keyboard.asm"
 %include "data/shell.asm"
 %include "data/benchmark.asm"
@@ -52,6 +71,7 @@ gdt_loaded:
 %include "load_idt.asm"
 
 %include "print.asm"
+%include "heap.asm"
 %include "keyboard.asm"
 %include "rtc.asm"
 %include "string.asm"
