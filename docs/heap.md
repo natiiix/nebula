@@ -33,8 +33,14 @@ but the first 16 MiB block contains a lot more than just the primary table.
 
 #### Data block
 
-Table entry contains the number of allocated minimal/tertiary/256-byte blocks.
-This value can be later used for reallocation.
+Table entry contains the number of allocated sub-blocks.
+This value must always be in the 0-255 (0x00-0xFF) range because
+there are exactly 255 sub-blocks at each allocation table level.
+
+First first table entry (offset 0) has a special meaning.
+It should always contain the sum of the remaining entries in the table.
+This value, shifted to the left by 24 bits into the most significant byte,
+should be propagated to the higher-level table into the corresponding entry.
 
 When multiple data blocks are allocated at once, on any allocation table level,
 they must always form one continuous memory block within their parent block.
@@ -67,23 +73,16 @@ In primary and secondary tables, this value is always a 32-bit integer.
 In the tertiary tables, it is only an 8-bit integer because the tertiary sub-blocks are only 256 bytes long
 and the table in the first sub-block needs to describe all 256 of the sub-blocks => 1 byte per table entry.
 
-The values in the table entries represent the number of 256 byte blocks necessary to perform the allocation.
-This is the allocation size divided by 256 and then rounded up.
-
-Here is the NASM implementation of the entry value calculation, assuming that the allocation size is in `EAX`.
-I believe some people may find it easier to understand than the natural language description.
-
-```nasm
-add eax, 0xFF
-shr eax, 8
-```
+The value of the table entry represents the number of allocated blocks at the given allocation table level.
 
 No 32-bit integer divided by 256 (right-shifted by 8) can ever be longer than 24 bits.
-This means that the most significant byte of all data block table entries must always be `0x00`.
+This means that the most significant byte of all *data* block table entries must always be `0x00`.
 
 ## Allocation procedure - `malloc`
 
 **TBD**
+
+*See `malloc` procedure in `src/heap.asm`.*
 
 1. Determine necessary allocation size (in 256-byte/tertiary blocks).
 2. Pick a table level based on the allocation size.
@@ -121,12 +120,13 @@ jmp .null_error
 
 **TBD**
 
+*At the moment, it is not clear how it is going to be implemented.*
+
 ## Checking memory usage
 
 **TBD**
 
-The first entry in the primary allocation table should contain the total number
-of allocated 256-byte blocks (on the heap, excluding the first primary block).
+*It will be necessary to recurse into the nested allocation tables.*
 
 ## Examples of allocation
 
@@ -145,12 +145,13 @@ However, it can still fit into a tertiary table, taking up multiple tertiary blo
 All of the allocated tertiary blocks must be within a single parent secondary block.
 The table entry representing the first block used for this allocation
 will contain the number of allocated blocks.
-Every following entry will contain a value decreased by one until zero is reached.
+The remaining entries covered by this allocation should contain `0x00`,
+so that the sum of the entries' values matched the value of the first entry.
 
 ### 0xFF01 - 0x1_0000 bytes
 
 This is exactly the right size of data for a single secondary block.
-The table entry will contain `0x100` = 256 tertiary blocks = single secondary block.
+The table entry will contain `0x00000001` = one secondary block.
 The value of the following table entry will be in no way related to this one.
 The allocated secondary block will NOT contain the secondary allocation table.
 
@@ -163,7 +164,7 @@ but the corresponding table entry value is 32-bit instead of 8-bit.
 ### 0xFF_0001 - 0x100_0000 bytes
 
 This will result in the allocation of a single primary block in the primary allocation table,
-with the table entry containing the value `0x10000` = 65536 tertiary blocks = 256 secondary blocks.
+with the table entry containing the value `0x00000001` = one primary block.
 
 ### 0x100_0001 - 0xFF00_0000 bytes
 
