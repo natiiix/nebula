@@ -54,6 +54,7 @@ malloc:
     jz .primary_find_zero           ; if table entry is zero
 
     ; Table entry is non-zero.
+    and eax, 0xFF                   ; only the least significant byte is used to number of allocated bytes (more significant bytes are reserved)
     dec eax                         ; decrement table entry locally because LODSD has already moved ESI to the next entry
     shl eax, 2                      ; convert table entry value into table offset (32-bit entries)
     add esi, eax                    ; skip the already allocated entries
@@ -109,6 +110,137 @@ malloc:
     mov esi, 0  ; return NULL pointer
     ret
 
+; @in   EDX Required number of unused entries.
+find_secondary_table:
+    mov esi, primary_heap_tab + 4
+
+.find_loop:
+    lodsd
+    test eax, 0xFF00_0000           ; check the most significant byte to determine if this is a nested table entry
+    jnz .found
+
+    test eax, eax                   ; check if the table entry is used
+    jz .find_loop_end               ; zero => unused primary table entry
+
+    ; and eax, 0xFF                 ; not necessary, we know from the previous check that this is not a nested table block
+    dec eax                         ; LODSD has already incremented the entry pointer
+    shl eax, 2                      ; convert from index into 32-bit entry offset
+    add esi, eax                    ; skip the allocated data block entries
+
+.find_loop_end:
+    cmp esi, primary_heap_tab_end
+    jb .find_loop
+
+    mov esi, 0
+    ret
+
+.found:
+    mov ebx, 0xFF                   ; maximal number of blocks that can be allocated
+    shr eax, 24                     ; most significant byte contains number of already allocated sub-blocks in a nested table
+    sub ebx, eax                    ; calculated number of unused blocks
+    cmp ebx, edx                    ; check if there is enough space in the table for the requested allocation
+    jb .find_loop                   ; definitely not enough space in the table
+
+    sub esi, primary_heap_tab + 4   ; caculate primary table entry offset (+4 because ESI was already incremented to the next table entry)
+    shl esi, 24 - 2                 ; get the address of the secondary table
+    ret
+
+; Finds the first unused entry in the primary table and returns a pointer to it.
+find_unused_primary_entry:
+    mov esi, primary_heap_tab + 4
+    mov ebx, primary_heap_tab_end
+    ; jmp find_unused_32b_entry
+
+; @in   ESI Start address.
+; @in   EBX End address (exclusive).
+; @out  ESI Address of unused table entry (or NULL if the table is already fully used).
+; @reg  EAX
+find_unused_32b_entry:
+    cmp esi, ebx
+    jae ret_esi_null    ; end of table => all entries already used
+
+    lodsd
+    test eax, eax
+    jnz .next_entry     ; table entry is already used, skip to the next entry
+
+    ; Success - found an unused table entry.
+    sub esi, 4          ; get pointer to the unused entry (LODSD already moved ESI to the address of the next entry)
+    ret
+
+.next_entry:
+    and eax, 0xFF       ; only the least significant byte is used to number of allocated bytes (more significant bytes are reserved)
+    dec eax             ; decrement table entry locally because LODSD has already moved ESI to the next entry
+    shl eax, 2          ; convert table entry value into table offset (32-bit entries)
+    add esi, eax        ; skip the already allocated entries
+
+    jmp find_unused_32b_entry
+
+; @in   ESI Start address.
+; @in   EBX End address (exclusive).
+; @out  ESI Address of unused table entry (or NULL if the table is already fully used).
+; @reg  EAX
+find_unused_8bit_entry:
+    cmp esi, ebx
+    jae ret_esi_null    ; end of table => all entries already used
+
+    lodsb
+    test al, al
+    jnz .next_entry     ; entry is already used, skip to the next entry
+
+    dec esi             ; get address of unused entry (LODSB has already incremented ESI)
+    ret
+
+.next_entry:
+    dec eax             ; decrement table entry locally because LODSB has already moved ESI to the next entry
+    add esi, eax        ; skip the already allocated entries
+    jmp find_unused_8bit_entry
+
+; Returns NULL pointer in ESI.
+; @out  ESI 0
+; @reg
+ret_esi_null:
+    mov esi, 0
+    ret
+
+; Generates a procedure for counting consecutive zeros.
+; @args
+;   - String instruction to use (LODSx).
+;   - Version of the A register to use (AL/AX/EAX).
+; @in   ESI Start address.
+; @in   EBX End address (exclusive).
+; @out  ECX Number of consecutive zeros.
+%macro COUNT_ZERO 2
+    mov ecx, 0
+
+.count_loop:
+    cmp esi, ebx
+    jae .end
+
+    %1
+    test %2, %2
+    jz .next
+
+.end:
+    ret
+
+.next:
+    inc ecx
+    jmp .count_loop
+%endmacro
+
+; @in   ESI Start address.
+; @in   EBX End address (exclusive).
+; @out  ECX Number of consecutive 32-bit zeros.
+count_zero_32b:
+    COUNT_ZERO lodsd eax
+
+; @in   ESI Start address.
+; @in   EBX End address (exclusive).
+; @out  ECX Number of consecutive 8-bit zeros.
+count_zero_8b:
+    COUNT_ZERO lodsb al
+
+; Clears the specified number of 4-byte memory blocks starting at address in EDI.
 %macro CLEAR_4BYTE 1
     mov ecx, %1
     mov eax, 0
