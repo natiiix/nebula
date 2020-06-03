@@ -31,17 +31,43 @@ gdt_loaded:
 
     mov eax, 0x02000001
     call malloc
+    ; mov eax, esi
+    ; call print32
+    ; mov eax, dword [primary_heap_tab]
+    ; call print32
+    ; mov eax, dword [primary_heap_tab + 4]
+    ; call print32
+    ; mov eax, dword [primary_heap_tab + 8]
+    ; call print32
+    ; mov eax, dword [primary_heap_tab + 12]
+    ; call print32
+    ; mov eax, dword [primary_heap_tab + 16]
+    ; call print32
+
+    ; -----------------
+
+    mov eax, 0xDDEEAADD
+    call print32
+
+    mov dword [primary_heap_tab + 24], 0x01000001
+
+    mov edi, 0x06000000
+    call clear_secondary_table
+
+    mov eax, 0x00080407
+    call malloc
+
+    push edi
     mov eax, esi
     call print32
+
+    pop eax
+    call print32
+
     mov eax, dword [primary_heap_tab]
     call print32
-    mov eax, dword [primary_heap_tab + 4]
-    call print32
-    mov eax, dword [primary_heap_tab + 8]
-    call print32
-    mov eax, dword [primary_heap_tab + 12]
-    call print32
-    mov eax, dword [primary_heap_tab + 16]
+
+    mov eax, dword [primary_heap_tab + 24]
     call print32
 
 ; If in benchmark mode, run the defined benchmark code instead of the shell loop.
